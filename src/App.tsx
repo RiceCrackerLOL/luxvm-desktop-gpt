@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react'
+import { evaluate as mathEvaluate, derivative as mathDerivative, simplify as mathSimplify } from 'mathjs'
 
 type WorkspaceTab = 'chat' | 'voice' | 'codex' | 'chess' | 'image'
 
@@ -120,9 +121,14 @@ function safeSetStorage(key: string, value: unknown): void {
 
 type ResponseTier = 'quick' | 'standard' | 'deep'
 
+function isMathPrompt(prompt: string): boolean {
+  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial)\b/i.test(prompt)
+}
+
 function classifyResponseTier(prompt: string): ResponseTier {
   const value = prompt.trim().toLowerCase()
   const complexSignals = /\b(prove|derive|debug|architect|design|compare|evaluate|analy[sz]e|step[- ]by[- ]step|multi[- ]step|in depth|deep dive|optimi[sz]e|algorithm|proof|theorem|differential|integral|matrix|recursion|trade-?offs)\b/
+  if (isMathPrompt(value) && (complexSignals.test(value) || value.length > 120)) return 'deep'
   if (complexSignals.test(value) || value.length > 650 || (value.match(/\n/g) || []).length >= 3) return 'deep'
   if (/^(what is|what's|whats|who is|when did|where is|define|how many|how much)\b/.test(value) && value.length < 140) return 'quick'
   if (value.length < 90 && !/[;{}]/.test(value)) return 'quick'
@@ -131,87 +137,59 @@ function classifyResponseTier(prompt: string): ResponseTier {
 
 function getResponseBudget(prompt: string): number {
   const tier = classifyResponseTier(prompt)
+  if (isMathPrompt(prompt) && tier === 'deep') return 16000
   return tier === 'quick' ? 180 : tier === 'deep' ? 1400 : 650
-}
-
-function evaluateMathExpression(source: string): number | null {
-  const tokens = source.match(/\s*(?:(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?|[a-z]+|[()+\-*/%^,])\s*/gi)
-  if (!tokens) return null
-  const normalized = tokens.map((token) => token.trim()).filter(Boolean)
-  if (normalized.join('').toLowerCase() !== source.replace(/\s+/g, '').toLowerCase()) return null
-  let index = 0
-  const peek = () => normalized[index] || ''
-  const take = () => normalized[index++] || ''
-  const expression = (): number => {
-    let value = term()
-    while (peek() === '+' || peek() === '-') {
-      const op = take()
-      const right = term()
-      value = op === '+' ? value + right : value - right
-    }
-    return value
-  }
-  const primary = (): number => {
-    const token = take()
-    if (token === '(') {
-      const value = expression()
-      if (take() !== ')') throw new Error('Missing closing parenthesis')
-      return value
-    }
-    if (/^(pi|e)$/i.test(token)) return token.toLowerCase() === 'pi' ? Math.PI : Math.E
-    if (/^[a-z]+$/i.test(token)) {
-      if (take() !== '(') throw new Error('Expected function parentheses')
-      const value = expression()
-      if (take() !== ')') throw new Error('Missing function parenthesis')
-      const fn: Record<string, (n: number) => number> = {
-        sqrt: Math.sqrt, abs: Math.abs, sin: Math.sin, cos: Math.cos, tan: Math.tan,
-        log: Math.log10, ln: Math.log, round: Math.round, floor: Math.floor, ceil: Math.ceil,
-      }
-      if (!fn[token.toLowerCase()]) throw new Error('Unknown function')
-      return fn[token.toLowerCase()](value)
-    }
-    const number = Number(token)
-    if (!Number.isFinite(number)) throw new Error('Invalid number')
-    return number
-  }
-  const unary = (): number => {
-    if (peek() === '+') { take(); return unary() }
-    if (peek() === '-') { take(); return -unary() }
-    return primary()
-  }
-  const power = (): number => {
-    const left = unary()
-    if (peek() === '^') { take(); return left ** power() }
-    return left
-  }
-  const term = (): number => {
-    let value = power()
-    while (['*', '/', '%'].includes(peek())) {
-      const op = take()
-      const right = power()
-      if ((op === '/' || op === '%') && right === 0) throw new Error('Division by zero')
-      value = op === '*' ? value * right : op === '/' ? value / right : value % right
-    }
-    return value
-  }
-  try {
-    const result = expression()
-    if (index !== normalized.length || !Number.isFinite(result)) return null
-    return result
-  } catch {
-    return null
-  }
 }
 
 function getCalculatorContext(prompt: string): string {
   const trimmed = prompt.trim()
+  const derivativeMatch = trimmed.match(/(?:differentiate|derivative of)\s+(.+?)(?:\s+(?:with respect to|w\.r\.t\.?)\s+([a-z]))?[?.!]*$/i)
+  if (derivativeMatch) {
+    try {
+      const variable = (derivativeMatch[2] || 'x').toLowerCase()
+      const result = mathDerivative(derivativeMatch[1].replace(/[?.!]+$/g, '').trim(), variable).toString()
+      return 'Verified symbolic derivative (variable ' + variable + '): ' + result + '. Check and use this result; do not mention an internal calculator unless asked.'
+    } catch {}
+  }
+
+  const simplifyMatch = trimmed.match(/(?:simplify|factor)\s+(.+?)[?.!]*$/i)
+  if (simplifyMatch) {
+    try {
+      const result = mathSimplify(simplifyMatch[1].replace(/[?.!]+$/g, '').trim()).toString()
+      return 'Verified symbolic simplification: ' + result + '. Check and use this result; do not mention an internal calculator unless asked.'
+    } catch {}
+  }
+
+  const integralMatch = trimmed.match(/(?:integrate|definite integral of)\s+(.+?)\s+from\s+(-?\d+(?:\.\d+)?)\s+to\s+(-?\d+(?:\.\d+)?)/i)
+  if (integralMatch) {
+    try {
+      const expression = integralMatch[1].replace(/^['"]|['"]$/g, '').trim()
+      const lower = Number(integralMatch[2])
+      const upper = Number(integralMatch[3])
+      const intervals = 2000
+      const step = (upper - lower) / intervals
+      let sum = Number(mathEvaluate(expression, { x: lower })) + Number(mathEvaluate(expression, { x: upper }))
+      for (let i = 1; i < intervals; i++) {
+        const y = Number(mathEvaluate(expression, { x: lower + i * step }))
+        if (!Number.isFinite(y)) throw new Error('Non-finite integrand')
+        sum += (i % 2 === 0 ? 2 : 4) * y
+      }
+      const result = (sum * step) / 3
+      if (Number.isFinite(result)) return 'Verified numerical definite integral using Simpson rule: ' + result.toPrecision(12) + '. State that this is a numerical approximation, not a symbolic antiderivative.'
+    } catch {}
+  }
+
   const explicit = trimmed.match(/(?:calculate|compute|evaluate|solve|what is|what's|whats|how much is)\s+(.+?)[?.!]*$/i)
   const direct = /^[\d.\s()+\-*/%^a-z,]+$/i.test(trimmed) ? trimmed : null
   const candidate = (explicit?.[1] || direct || '').replace(/[?=]+$/g, '').trim()
-  if (!candidate || candidate.length > 100) return ''
-  const result = evaluateMathExpression(candidate)
-  if (result === null) return ''
-  return 'Verified local calculator result: ' + candidate + ' = ' + Number(result.toPrecision(12)) + '. Use this result when answering; do not mention an internal calculator unless asked.'
+  if (!candidate || candidate.length > 500 || !/^[\d.a-z_\s()+\-*/%^,]+$/i.test(candidate)) return ''
+  try {
+    const result = mathEvaluate(candidate)
+    if (typeof result !== 'number' || !Number.isFinite(result)) return ''
+    return 'Verified local calculator result: ' + candidate + ' = ' + Number(result.toPrecision(14)) + '. Use this result when answering; do not mention an internal calculator unless asked.'
+  } catch {
+    return ''
+  }
 }
 
 function updateSessionMemory(previous: string | undefined, messages: Message[]): string {
@@ -597,11 +575,12 @@ export default function App() {
       const chatMemory = updateSessionMemory(currentSession.memory, updatedMessages)
       const calculatorContext = getCalculatorContext(trimmed)
       const responseTier = classifyResponseTier(trimmed)
+      const mathQuestion = isMathPrompt(trimmed)
       const outboundMessages = [
         ...(systemPrompt.trim() ? [{ role: 'system' as const, content: systemPrompt.trim() }] : []),
         ...(chatMemory ? [{ role: 'system' as const, content: 'Memory saved for this chat only:\n' + chatMemory }] : []),
         ...(calculatorContext ? [{ role: 'system' as const, content: calculatorContext }] : []),
-        { role: 'system' as const, content: responseTier === 'quick' ? 'This is a straightforward request. Answer accurately and directly in the fewest useful words. Do not over-explain.' : responseTier === 'deep' ? 'This is a demanding request. Take the time needed to reason carefully, verify steps, and explain the important details.' : 'Use a balanced level of detail appropriate to the request.' },
+        { role: 'system' as const, content: mathQuestion ? 'Mathematics mode: solve accurately, verify intermediate calculations, check units and edge cases, and distinguish exact answers from numerical approximations. Use concise working for routine problems and a clear rigorous derivation for difficult ones. Never invent a calculator result.' : responseTier === 'quick' ? 'This is a straightforward request. Answer accurately and directly in the fewest useful words. Do not over-explain.' : responseTier === 'deep' ? 'This is a demanding request. Take the time needed to reason carefully, verify steps, and explain the important details.' : 'Use a balanced level of detail appropriate to the request.' },
         ...updatedMessages
           .filter((m) => m.role === 'user' || m.role === 'assistant')
           .slice(-40)
@@ -615,6 +594,7 @@ export default function App() {
           model: models.chat,
           messages: outboundMessages,
           max_tokens: getResponseBudget(trimmed),
+          ...(mathQuestion && responseTier === 'deep' ? { reasoning: { effort: 'high', exclude: true } } : {}),
         }),
         signal: controller.signal,
       })
