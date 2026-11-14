@@ -21,6 +21,7 @@ interface ChatSession {
 
 interface ModelConfig {
   chat: string
+  math: string
   voice: string
   codex: string
   chess: string
@@ -43,6 +44,7 @@ const OPENROUTER_IMAGE_URL = 'https://openrouter.ai/api/v1/images'
 
 const DEFAULT_MODELS: ModelConfig = {
   chat: 'nvidia/nemotron-3.5-lightning:free',
+  math: '',
   voice: 'nvidia/nemotron-3.5-super-vl:free',
   codex: 'cohere/north-mini-code:free',
   chess: 'nvidia/nemotron-3.5-lightning:free',
@@ -591,7 +593,7 @@ export default function App() {
         method: 'POST',
         headers: openRouterHeaders(),
         body: JSON.stringify({
-          model: models.chat,
+          model: mathQuestion && models.math.trim() ? models.math.trim() : models.chat,
           messages: outboundMessages,
           max_tokens: getResponseBudget(trimmed),
           ...(mathQuestion && responseTier === 'deep' ? { reasoning: { effort: 'high', exclude: true } } : {}),
@@ -1267,6 +1269,15 @@ export default function App() {
                   onChange={(e) =>
                     setModels({ ...models, chat: e.target.value, chess: e.target.value })
                   }
+                />
+              </div>
+              <div>
+                <label style={styles.label}>Math Model (optional, blank uses Chat Model)</label>
+                <input
+                  style={styles.input}
+                  value={models.math || ''}
+                  onChange={(e) => setModels({ ...models, math: e.target.value })}
+                  placeholder="e.g. provider/model-id"
                 />
               </div>
               <div>
