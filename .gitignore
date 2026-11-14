@@ -7,3 +7,6 @@ release/
 .env
 .env.*
 !.env.example
+
+# Generated local Stockfish engine assets (copied from the npm package)
+public/stockfish/
