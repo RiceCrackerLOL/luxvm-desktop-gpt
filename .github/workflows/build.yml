@@ -31,6 +31,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Audit dependency vulnerabilities
+        run: npm audit --json > npm-audit.json
+        continue-on-error: true
+
+      - name: Upload dependency audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuxVM-NPM-Audit
+          path: npm-audit.json
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Type-check, build, and package
         run: npm run build
 
