@@ -2,6 +2,17 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { evaluate as mathEvaluate, derivative as mathDerivative, simplify as mathSimplify } from 'mathjs'
 
+declare global {
+  interface Window {
+    luxvmUpdater?: {
+      checkForUpdates: () => Promise<{ ok: boolean; message?: string }>
+      downloadUpdate: () => Promise<{ ok: boolean; message?: string }>
+      installUpdate: () => Promise<{ ok: boolean; message?: string }>
+      onStatus: (callback: (payload: { status: string; data?: any }) => void) => () => void
+    }
+  }
+}
+
 type WorkspaceTab = 'chat' | 'voice' | 'codex' | 'chess' | 'image'
 
 interface Message {
@@ -463,6 +474,47 @@ export default function App() {
   const [showGithubApproval, setShowGithubApproval] = useState(false)
   const [isGithubPublishing, setIsGithubPublishing] = useState(false)
   const [githubStatus, setGithubStatus] = useState('')
+  const [updateStatus, setUpdateStatus] = useState('Checking for updates when available...')
+  const [updateVersion, setUpdateVersion] = useState('')
+  const [updateProgress, setUpdateProgress] = useState(0)
+
+  useEffect(() => {
+    const unsubscribe = window.luxvmUpdater?.onStatus(({ status, data }) => {
+      if (status === 'checking') setUpdateStatus('Checking for updates...')
+      if (status === 'available') {
+        setUpdateVersion(data?.version || '')
+        setUpdateStatus(`Update ${data?.version || ''} is available.`)
+      }
+      if (status === 'up-to-date') setUpdateStatus('LuxVM is up to date.')
+      if (status === 'downloading') {
+        setUpdateProgress(data?.percent || 0)
+        setUpdateStatus(`Downloading update: ${data?.percent || 0}%`)
+      }
+      if (status === 'downloaded') {
+        setUpdateVersion(data?.version || updateVersion)
+        setUpdateStatus(`Update ${data?.version || ''} is ready to install. Restart LuxVM to finish.`)
+      }
+      if (status === 'error') setUpdateStatus(`Update error: ${data?.message || 'Unknown error'}`)
+    })
+    return () => unsubscribe?.()
+  }, [updateVersion])
+
+  const checkForLuxVMUpdates = async () => {
+    setUpdateStatus('Checking for updates...')
+    const result = await window.luxvmUpdater?.checkForUpdates()
+    if (result && !result.ok) setUpdateStatus(result.message || 'Update check failed.')
+  }
+
+  const downloadLuxVMUpdate = async () => {
+    setUpdateStatus('Starting update download...')
+    const result = await window.luxvmUpdater?.downloadUpdate()
+    if (result && !result.ok) setUpdateStatus(result.message || 'Update download failed.')
+  }
+
+  const installLuxVMUpdate = async () => {
+    const result = await window.luxvmUpdater?.installUpdate()
+    if (result && !result.ok) setUpdateStatus(result.message || 'Could not install update.')
+  }
 
   const initialSettings = safeGetStorage(SETTINGS_KEY, {
     apiKey: '',
