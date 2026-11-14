@@ -137,6 +137,28 @@ function safeSetStorage(key: string, value: unknown): void {
   }
 }
 
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 120000): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs)
+  const externalSignal = init.signal
+  const abortFromExternal = () => controller.abort()
+
+  if (externalSignal?.aborted) abortFromExternal()
+  else externalSignal?.addEventListener('abort', abortFromExternal, { once: true })
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal })
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)} seconds. Please try again.`)
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeoutId)
+    externalSignal?.removeEventListener('abort', abortFromExternal)
+  }
+}
+
 
 type ResponseTier = 'quick' | 'standard' | 'deep'
 
@@ -550,7 +572,7 @@ export default function App() {
     setIsTestingApi(true)
     setApiStatus('Checking key and model access…')
     try {
-      const response = await fetch(OPENROUTER_CHAT_URL, {
+      const response = await fetchWithTimeout(OPENROUTER_CHAT_URL, {
         method: 'POST',
         headers: openRouterHeaders(key),
         body: JSON.stringify({
@@ -809,7 +831,7 @@ export default function App() {
 
       const voiceSystem = `${systemPrompt.trim() || DEFAULT_SYSTEM_PROMPT}\n\nVoice mode: Speak naturally and conversationally. Keep spoken replies clear and reasonably concise. Avoid markdown, tables, and code blocks unless the user asks for them. If a task needs several steps, guide the user one step at a time.`
 
-      const res = await fetch(OPENROUTER_CHAT_URL, {
+      const res = await fetchWithTimeout(OPENROUTER_CHAT_URL, {
         method: 'POST',
         headers: openRouterHeaders(),
         body: JSON.stringify({
@@ -821,7 +843,7 @@ export default function App() {
               .map((m) => ({ role: m.role, content: m.content })),
           ],
         }),
-      })
+      }, 120000)
 
       const rawText = await res.text()
       if (!res.ok) throw new Error(getOpenRouterError(rawText, res.status))
@@ -905,7 +927,7 @@ export default function App() {
     try {
       if (!apiKey.trim()) throw new Error('Paste your OpenRouter API key in  Settings first.')
 
-      const res = await fetch(OPENROUTER_CHAT_URL, {
+      const res = await fetchWithTimeout(OPENROUTER_CHAT_URL, {
         method: 'POST',
         headers: openRouterHeaders(),
         body: JSON.stringify({
@@ -918,7 +940,7 @@ export default function App() {
             { role: 'user', content: codexPrompt.trim() },
           ],
         }),
-      })
+      }, 300000)
 
       const rawText = await res.text()
       if (!res.ok) throw new Error(getOpenRouterError(rawText, res.status))
@@ -968,7 +990,7 @@ export default function App() {
         'X-GitHub-Api-Version': '2022-11-28',
         'Content-Type': 'application/json',
       }
-      const existing = await fetch(apiBase + '?ref=main', { headers })
+      const existing = await fetchWithTimeout(apiBase + '?ref=main', { headers }, 30000)
       let existingSha: string | undefined
       if (existing.ok) {
         const existingData = await existing.json()
@@ -977,7 +999,7 @@ export default function App() {
         throw new Error('GitHub could not read the target file (HTTP ' + existing.status + '). Check the token and repository permissions.')
       }
 
-      const response = await fetch(apiBase, {
+      const response = await fetchWithTimeout(apiBase, {
         method: 'PUT',
         headers,
         body: JSON.stringify({
@@ -986,7 +1008,7 @@ export default function App() {
           ...(existingSha ? { sha: existingSha } : {}),
           branch: 'main',
         }),
-      })
+      }, 30000)
       const raw = await response.text()
       if (!response.ok) {
         let detail = raw
@@ -1200,7 +1222,7 @@ export default function App() {
     try {
       if (!apiKey.trim()) throw new Error('Please enter your OpenRouter API key in  Settings.')
 
-      const res = await fetch(OPENROUTER_IMAGE_URL, {
+      const res = await fetchWithTimeout(OPENROUTER_IMAGE_URL, {
         method: 'POST',
         headers: openRouterHeaders(),
         body: JSON.stringify({
@@ -1208,7 +1230,7 @@ export default function App() {
           prompt: imagePrompt.trim(),
           aspect_ratio: aspectRatio,
         }),
-      })
+      }, 180000)
 
       const rawText = await res.text()
       if (!res.ok) {
