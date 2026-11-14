@@ -205,7 +205,7 @@ function evaluateMathExpression(source: string): number | null {
 
 function getCalculatorContext(prompt: string): string {
   const trimmed = prompt.trim()
-  const explicit = trimmed.match(/(?:calculate|compute|evaluate|solve)\s+(.+?)[?.!]*$/i)
+  const explicit = trimmed.match(/(?:calculate|compute|evaluate|solve|what is|what's|whats|how much is)\s+(.+?)[?.!]*$/i)
   const direct = /^[\d.\s()+\-*/%^a-z,]+$/i.test(trimmed) ? trimmed : null
   const candidate = (explicit?.[1] || direct || '').replace(/[?=]+$/g, '').trim()
   if (!candidate || candidate.length > 100) return ''
@@ -446,6 +446,13 @@ function getAllLegalMoves(board: Board, whiteTurn: boolean): string[] {
 export default function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('chat')
   const [showSettings, setShowSettings] = useState(false)
+  const [githubRepo, setGithubRepo] = useState<string>(() => safeGetStorage<any>(SETTINGS_KEY, {}).githubRepo || 'RiceCrackerLOL/luxvm-desktop-gpt')
+  const [githubToken, setGithubToken] = useState('')
+  const [githubTargetPath, setGithubTargetPath] = useState('src/App.tsx')
+  const [githubCommitMessage, setGithubCommitMessage] = useState('Update LuxVM from Codex Studio')
+  const [showGithubApproval, setShowGithubApproval] = useState(false)
+  const [isGithubPublishing, setIsGithubPublishing] = useState(false)
+  const [githubStatus, setGithubStatus] = useState('')
 
   const initialSettings = safeGetStorage(SETTINGS_KEY, {
     apiKey: '',
@@ -467,8 +474,9 @@ export default function App() {
       apiKey: apiKey.trim(),
       systemPrompt: systemPrompt.trim(),
       models,
+      githubRepo: githubRepo.trim(),
     })
-  }, [apiKey, systemPrompt, models])
+  }, [apiKey, systemPrompt, models, githubRepo])
 
   const openRouterHeaders = () => ({
     'Content-Type': 'application/json',
@@ -832,6 +840,76 @@ export default function App() {
     }
   }
 
+
+  const encodeBase64Utf8 = (value: string): string => {
+    const bytes = new TextEncoder().encode(value)
+    let binary = ''
+    bytes.forEach((byte) => { binary += String.fromCharCode(byte) })
+    return btoa(binary)
+  }
+
+  const publishCodexToGithub = async () => {
+    const repoName = githubRepo.trim()
+    const path = githubTargetPath.trim().replace(/^\/+/, '')
+    if (!/^[^/]+\/[^/]+$/.test(repoName)) {
+      setGithubStatus('Enter the repository as owner/repository.')
+      return
+    }
+    if (!githubToken.trim()) {
+      setGithubStatus('Add a GitHub personal access token in Settings first.')
+      return
+    }
+    if (!path || !codexOutput.trim() || codexOutput.startsWith('// Your generated code')) {
+      setGithubStatus('Generate code and enter a target file path first.')
+      return
+    }
+
+    setIsGithubPublishing(true)
+    setGithubStatus('')
+    try {
+      const apiBase = 'https://api.github.com/repos/' + repoName + '/contents/' + path.split('/').map(encodeURIComponent).join('/')
+      const headers = {
+        Accept: 'application/vnd.github+json',
+        Authorization: 'Bearer ' + githubToken.trim(),
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json',
+      }
+      const existing = await fetch(apiBase + '?ref=main', { headers })
+      let existingSha: string | undefined
+      if (existing.ok) {
+        const existingData = await existing.json()
+        existingSha = existingData.sha
+      } else if (existing.status !== 404) {
+        throw new Error('GitHub could not read the target file (HTTP ' + existing.status + '). Check the token and repository permissions.')
+      }
+
+      const response = await fetch(apiBase, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          message: githubCommitMessage.trim() || 'Update LuxVM from Codex Studio',
+          content: encodeBase64Utf8(codexOutput),
+          ...(existingSha ? { sha: existingSha } : {}),
+          branch: 'main',
+        }),
+      })
+      const raw = await response.text()
+      if (!response.ok) {
+        let detail = raw
+        try { detail = JSON.parse(raw).message || raw } catch {}
+        throw new Error('GitHub rejected the update (HTTP ' + response.status + '): ' + detail)
+      }
+      const result = JSON.parse(raw)
+      setGithubStatus('Committed successfully: ' + (result.commit?.html_url || result.content?.html_url || 'GitHub update created.'))
+      setShowGithubApproval(false)
+    } catch (error: any) {
+      setGithubStatus(error?.message || 'Could not publish the update.')
+    } finally {
+      setIsGithubPublishing(false)
+    }
+  }
+
+
   const copyCodeToClipboard = () => {
     navigator.clipboard.writeText(codexOutput)
     setCopiedCode(true)
@@ -1190,6 +1268,16 @@ export default function App() {
               />
             </div>
 
+            <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
+              <label style={styles.label}>GitHub Repository (owner/repository)</label>
+              <input style={styles.input} value={githubRepo} onChange={(e) => setGithubRepo(e.target.value)} placeholder="owner/repository" />
+            </div>
+            <div style={styles.fieldRow}>
+              <label style={styles.label}>GitHub Personal Access Token</label>
+              <input style={styles.input} type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} placeholder="github_pat_..." autoComplete="off" />
+              <span style={{ fontSize: '11px', color: '#777065' }}>Kept in memory only for this app session; it is not saved with your settings. Use a fine-grained token limited to this repository with Contents: Read and write.</span>
+            </div>
+
             <div style={styles.grid2}>
               <div>
                 <label style={styles.label}>Chat & Chess Model</label>
@@ -1442,11 +1530,15 @@ export default function App() {
                   <button type="button" onClick={downloadCodeFile} style={styles.secondaryBtn}>
                      Save File
                   </button>
+                  <button type="button" onClick={() => { setGithubStatus(''); setShowGithubApproval(true) }} style={styles.secondaryBtn}>
+                    Prepare GitHub Update
+                  </button>
                 </div>
               </div>
               <pre style={styles.codeBlock}>
                 <code>{codexOutput}</code>
               </pre>
+              {githubStatus && <div style={{ padding: '9px 16px', fontSize: '12px', color: githubStatus.startsWith('Committed') ? '#52664D' : '#8A4938', background: '#EEEAE2' }}>{githubStatus}</div>}
             </div>
           </div>
         )}
@@ -1569,11 +1661,39 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {showGithubApproval && (
+        <div style={styles.modalBackdrop} role="presentation">
+          <section style={styles.approvalModal} role="dialog" aria-modal="true" aria-labelledby="github-approval-title">
+            <h3 id="github-approval-title" style={{ margin: '0 0 8px', fontSize: '16px' }}>Approve GitHub update</h3>
+            <p style={{ margin: '0 0 14px', color: '#625C53', fontSize: '13px', lineHeight: 1.5 }}>
+              LuxVM is ready to write the generated Codex output to <strong>{githubRepo}</strong> on the <strong>main</strong> branch. Nothing is sent until you approve below.
+            </p>
+            <label style={styles.label}>Target file path</label>
+            <input style={styles.input} value={githubTargetPath} onChange={(e) => setGithubTargetPath(e.target.value)} placeholder="src/App.tsx" />
+            <label style={{ ...styles.label, marginTop: '10px' }}>Commit message</label>
+            <input style={styles.input} value={githubCommitMessage} onChange={(e) => setGithubCommitMessage(e.target.value)} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '18px' }}>
+              <button type="button" onClick={() => setShowGithubApproval(false)} style={styles.secondaryBtn} disabled={isGithubPublishing}>Cancel</button>
+              <button type="button" onClick={publishCodexToGithub} style={styles.primaryBtn} disabled={isGithubPublishing}>{isGithubPublishing ? 'Publishing...' : 'Approve and commit'}</button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   )
 }
 
 const styles: Record<string, React.CSSProperties> = {
+  modalBackdrop: {
+    position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(35,32,28,.42)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+  },
+  approvalModal: {
+    width: 'min(520px, 100%)', background: '#F5F3EE', color: '#292825',
+    border: '1px solid #DED8CE', borderRadius: '12px', padding: '22px',
+    boxShadow: '0 18px 60px rgba(35,32,28,.22)',
+  },
   appContainer: {
     display: 'flex',
     height: '100vh',
