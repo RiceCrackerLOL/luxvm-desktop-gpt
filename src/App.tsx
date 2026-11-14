@@ -475,14 +475,12 @@ export default function App() {
   const [isGithubPublishing, setIsGithubPublishing] = useState(false)
   const [githubStatus, setGithubStatus] = useState('')
   const [updateStatus, setUpdateStatus] = useState('Checking for updates when available...')
-  const [updateVersion, setUpdateVersion] = useState('')
   const [updateProgress, setUpdateProgress] = useState(0)
 
   useEffect(() => {
     const unsubscribe = window.luxvmUpdater?.onStatus(({ status, data }) => {
       if (status === 'checking') setUpdateStatus('Checking for updates...')
       if (status === 'available') {
-        setUpdateVersion(data?.version || '')
         setUpdateStatus(`Update ${data?.version || ''} is available.`)
       }
       if (status === 'up-to-date') setUpdateStatus('LuxVM is up to date.')
@@ -491,13 +489,12 @@ export default function App() {
         setUpdateStatus(`Downloading update: ${data?.percent || 0}%`)
       }
       if (status === 'downloaded') {
-        setUpdateVersion(data?.version || updateVersion)
         setUpdateStatus(`Update ${data?.version || ''} is ready to install. Restart LuxVM to finish.`)
       }
       if (status === 'error') setUpdateStatus(`Update error: ${data?.message || 'Unknown error'}`)
     })
     return () => unsubscribe?.()
-  }, [updateVersion])
+  }, [])
 
   const checkForLuxVMUpdates = async () => {
     setUpdateStatus('Checking for updates...')
