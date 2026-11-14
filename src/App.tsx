@@ -883,9 +883,28 @@ export default function App() {
     }
   }
 
+  const globalStyle = <style>{`
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #F5F3EE; color: #292825; }
+    button, input, textarea, select { font: inherit; }
+    button { transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
+    button:hover { filter: brightness(.97); }
+    button:active { transform: translateY(1px); }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #A65F43; outline-offset: 2px; }
+    input, textarea, select { transition: border-color 160ms ease, box-shadow 160ms ease; }
+    input:focus, textarea:focus, select:focus { border-color: #A65F43 !important; box-shadow: 0 0 0 3px rgba(166,95,67,.12); }
+    ::selection { background: rgba(166,95,67,.18); }
+    ::-webkit-scrollbar { width: 9px; height: 9px; }
+    ::-webkit-scrollbar-thumb { background: #CFC8BC; border: 2px solid #F5F3EE; border-radius: 20px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    @media (max-width: 760px) { [data-luxvm-sidebar] { width: 196px !important; min-width: 196px !important; } }
+    @media (max-width: 560px) { [data-luxvm-sidebar] { width: 176px !important; min-width: 176px !important; } }
+  `}</style>
+
   return (
     <div style={styles.appContainer}>
-      {style}
+      {globalStyle}
       <aside data-luxvm-sidebar style={styles.sidebar}>
         <div style={styles.sidebarBrand}>
           <span style={styles.dot} />
