@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog } from 'electron'
 import path from 'path'
+import { existsSync } from 'fs'
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception in Main Process:', error)
@@ -31,7 +32,15 @@ function createWindow() {
         console.error('Failed to load Vite dev server URL:', err)
       })
     } else {
-      const indexPath = path.join(__dirname, '../dist/index.html')
+      // app.getAppPath() resolves to the app root (including app.asar when packaged).
+      // __dirname points deeper into dist-electron/electron after compilation.
+      const indexPath = path.join(app.getAppPath(), 'dist', 'index.html')
+      if (!existsSync(indexPath)) {
+        const message = `The packaged interface file is missing. Expected: ${indexPath}`
+        console.error(message)
+        dialog.showErrorBox('Startup Error', message)
+        return
+      }
       mainWindow.loadFile(indexPath).catch((err) => {
         console.error('Failed to load production index.html:', indexPath, err)
         dialog.showErrorBox('Startup Error', `Could not load application interface from:\n${indexPath}`)
