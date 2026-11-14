@@ -70,8 +70,8 @@ type PieceChar = 'P' | 'N' | 'B' | 'R' | 'Q' | 'K' | 'p' | 'n' | 'b' | 'r' | 'q'
 type Board = PieceChar[][]
 
 const PIECE_UNICODE: Record<string, string> = {
-  K: '', Q: '', R: '', B: '', N: '', P: '',
-  k: '', q: '', r: '', b: '', n: '', p: '',
+  K: '\\u2654', Q: '\\u2655', R: '\\u2656', B: '\\u2657', N: '\\u2658', P: '\\u2659',
+  k: '\\u265A', q: '\\u265B', r: '\\u265C', b: '\\u265D', n: '\\u265E', p: '\\u265F',
 }
 
 function createInitialBoard(): Board {
@@ -1383,7 +1383,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100vw',
     backgroundColor: '#F5F3EE',
     color: '#292825',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     overflow: 'hidden',
   },
   sidebar: {
