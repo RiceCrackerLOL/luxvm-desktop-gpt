@@ -14,6 +14,7 @@ interface ChatSession {
   id: string
   title: string
   messages: Message[]
+  memory?: string
   updatedAt: number
 }
 
@@ -114,6 +115,111 @@ function safeSetStorage(key: string, value: unknown): void {
   } catch (err) {
     console.error(`Storage write failed for ${key}:`, err)
   }
+}
+
+
+type ResponseTier = 'quick' | 'standard' | 'deep'
+
+function classifyResponseTier(prompt: string): ResponseTier {
+  const value = prompt.trim().toLowerCase()
+  const complexSignals = /\b(prove|derive|debug|architect|design|compare|evaluate|analy[sz]e|step[- ]by[- ]step|multi[- ]step|in depth|deep dive|optimi[sz]e|algorithm|proof|theorem|differential|integral|matrix|recursion|trade-?offs)\b/
+  if (complexSignals.test(value) || value.length > 650 || (value.match(/\n/g) || []).length >= 3) return 'deep'
+  if (/^(what is|what's|whats|who is|when did|where is|define|how many|how much)\b/.test(value) && value.length < 140) return 'quick'
+  if (value.length < 90 && !/[;{}]/.test(value)) return 'quick'
+  return 'standard'
+}
+
+function getResponseBudget(prompt: string): number {
+  const tier = classifyResponseTier(prompt)
+  return tier === 'quick' ? 180 : tier === 'deep' ? 1400 : 650
+}
+
+function evaluateMathExpression(source: string): number | null {
+  const tokens = source.match(/\s*(?:(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?|[a-z]+|[()+\-*/%^,])\s*/gi)
+  if (!tokens) return null
+  const normalized = tokens.map((token) => token.trim()).filter(Boolean)
+  if (normalized.join('').toLowerCase() !== source.replace(/\s+/g, '').toLowerCase()) return null
+  let index = 0
+  const peek = () => normalized[index] || ''
+  const take = () => normalized[index++] || ''
+  const expression = (): number => {
+    let value = term()
+    while (peek() === '+' || peek() === '-') {
+      const op = take()
+      const right = term()
+      value = op === '+' ? value + right : value - right
+    }
+    return value
+  }
+  const primary = (): number => {
+    const token = take()
+    if (token === '(') {
+      const value = expression()
+      if (take() !== ')') throw new Error('Missing closing parenthesis')
+      return value
+    }
+    if (/^(pi|e)$/i.test(token)) return token.toLowerCase() === 'pi' ? Math.PI : Math.E
+    if (/^[a-z]+$/i.test(token)) {
+      if (take() !== '(') throw new Error('Expected function parentheses')
+      const value = expression()
+      if (take() !== ')') throw new Error('Missing function parenthesis')
+      const fn: Record<string, (n: number) => number> = {
+        sqrt: Math.sqrt, abs: Math.abs, sin: Math.sin, cos: Math.cos, tan: Math.tan,
+        log: Math.log10, ln: Math.log, round: Math.round, floor: Math.floor, ceil: Math.ceil,
+      }
+      if (!fn[token.toLowerCase()]) throw new Error('Unknown function')
+      return fn[token.toLowerCase()](value)
+    }
+    const number = Number(token)
+    if (!Number.isFinite(number)) throw new Error('Invalid number')
+    return number
+  }
+  const unary = (): number => {
+    if (peek() === '+') { take(); return unary() }
+    if (peek() === '-') { take(); return -unary() }
+    return primary()
+  }
+  const power = (): number => {
+    const left = unary()
+    if (peek() === '^') { take(); return left ** power() }
+    return left
+  }
+  const term = (): number => {
+    let value = power()
+    while (['*', '/', '%'].includes(peek())) {
+      const op = take()
+      const right = power()
+      if ((op === '/' || op === '%') && right === 0) throw new Error('Division by zero')
+      value = op === '*' ? value * right : op === '/' ? value / right : value % right
+    }
+    return value
+  }
+  try {
+    const result = expression()
+    if (index !== normalized.length || !Number.isFinite(result)) return null
+    return result
+  } catch {
+    return null
+  }
+}
+
+function getCalculatorContext(prompt: string): string {
+  const trimmed = prompt.trim()
+  const explicit = trimmed.match(/(?:calculate|compute|evaluate|solve)\s+(.+?)[?.!]*$/i)
+  const direct = /^[\d.\s()+\-*/%^a-z,]+$/i.test(trimmed) ? trimmed : null
+  const candidate = (explicit?.[1] || direct || '').replace(/[?=]+$/g, '').trim()
+  if (!candidate || candidate.length > 100) return ''
+  const result = evaluateMathExpression(candidate)
+  if (result === null) return ''
+  return 'Verified local calculator result: ' + candidate + ' = ' + Number(result.toPrecision(12)) + '. Use this result when answering; do not mention an internal calculator unless asked.'
+}
+
+function updateSessionMemory(previous: string | undefined, messages: Message[]): string {
+  const explicitFacts = messages
+    .filter((message) => message.role === 'user')
+    .map((message) => message.content.match(/(?:remember that|for this chat, remember|in this chat, remember)\s+(.+)/i)?.[1]?.trim())
+    .filter((fact): fact is string => Boolean(fact))
+  return Array.from(new Set([...(previous ? [previous] : []), ...explicitFacts])).join('\n').slice(-1800)
 }
 
 // Self-contained Chess Engine Helpers
@@ -465,7 +571,7 @@ export default function App() {
     setSessions((prev) =>
       prev.map((s) =>
         s.id === currentSession.id
-          ? { ...s, title: derivedTitle, messages: updatedMessages, updatedAt: Date.now() }
+          ? { ...s, title: derivedTitle, messages: updatedMessages, memory: updateSessionMemory(s.memory, updatedMessages), updatedAt: Date.now() }
           : s
       )
     )
@@ -480,8 +586,14 @@ export default function App() {
         throw new Error('Missing OpenRouter API Key. Click  Settings in the top right to paste it.')
       }
 
+      const chatMemory = updateSessionMemory(currentSession.memory, updatedMessages)
+      const calculatorContext = getCalculatorContext(trimmed)
+      const responseTier = classifyResponseTier(trimmed)
       const outboundMessages = [
         ...(systemPrompt.trim() ? [{ role: 'system' as const, content: systemPrompt.trim() }] : []),
+        ...(chatMemory ? [{ role: 'system' as const, content: 'Memory saved for this chat only:\n' + chatMemory }] : []),
+        ...(calculatorContext ? [{ role: 'system' as const, content: calculatorContext }] : []),
+        { role: 'system' as const, content: responseTier === 'quick' ? 'This is a straightforward request. Answer accurately and directly in the fewest useful words. Do not over-explain.' : responseTier === 'deep' ? 'This is a demanding request. Take the time needed to reason carefully, verify steps, and explain the important details.' : 'Use a balanced level of detail appropriate to the request.' },
         ...updatedMessages
           .filter((m) => m.role === 'user' || m.role === 'assistant')
           .slice(-40)
@@ -494,6 +606,7 @@ export default function App() {
         body: JSON.stringify({
           model: models.chat,
           messages: outboundMessages,
+          max_tokens: getResponseBudget(trimmed),
         }),
         signal: controller.signal,
       })
@@ -1122,6 +1235,19 @@ export default function App() {
                 onChange={(e) => setSystemPrompt(e.target.value)}
               />
             </div>
+
+            {activeTab === 'chat' && currentSession && (
+              <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
+                <label style={styles.label}>Memory for this chat only</label>
+                <textarea
+                  style={{ ...styles.input, minHeight: '58px', resize: 'vertical', fontFamily: 'inherit' }}
+                  value={currentSession.memory || ''}
+                  onChange={(e) => setSessions((prev) => prev.map((session) => session.id === currentSession.id ? { ...session, memory: e.target.value, updatedAt: Date.now() } : session))}
+                  placeholder="Facts or preferences LuxVM should retain in this conversation..."
+                />
+                <span style={{ fontSize: '11px', color: '#777065' }}>Each chat has separate memory. Only details written here or explicitly marked “remember that” are saved as memory.</span>
+              </div>
+            )}
 
             <button type="button" onClick={() => setShowSettings(false)} style={styles.primaryBtn}>
               Done
