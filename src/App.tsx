@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react'
 
 type WorkspaceTab = 'chat' | 'voice' | 'codex' | 'chess' | 'image'
@@ -803,3 +804,977 @@ export default function App() {
         setBoard(afterAiBoard)
         setMoveHistory(updatedHist)
 
+        const whiteLegalAfter = getAllLegalMoves(afterAiBoard, true)
+        if (whiteLegalAfter.length === 0) {
+          setChessStatus(
+            isKingInCheck(afterAiBoard, true)
+              ? `Checkmate! LuxVM wins with ${chosenUci}.`
+              : 'Stalemate! Draw.'
+          )
+        } else if (isKingInCheck(afterAiBoard, true)) {
+          setChessStatus(`AI played ${chosenUci}. Check! Your turn.`)
+        } else {
+          setChessStatus(`AI played ${chosenUci}. Your turn (White).`)
+        }
+      } catch {
+        setChessStatus('AI move error. Reset or try again.')
+      } finally {
+        setIsChessThinking(false)
+      }
+    }
+  }
+
+  // 5. Image Studio
+  const [imagePrompt, setImagePrompt] = useState('')
+  const [aspectRatio, setAspectRatio] = useState('1:1')
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([])
+  const [isImageLoading, setIsImageLoading] = useState(false)
+  const [imageError, setImageError] = useState('')
+
+  const generateImage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!imagePrompt.trim() || isImageLoading) return
+
+    setIsImageLoading(true)
+    setImageError('')
+
+    try {
+      if (!apiKey.trim()) throw new Error('Please enter your OpenRouter API key in  Settings.')
+
+      const res = await fetch(OPENROUTER_IMAGE_URL, {
+        method: 'POST',
+        headers: openRouterHeaders(),
+        body: JSON.stringify({
+          model: models.image,
+          prompt: imagePrompt.trim(),
+          aspect_ratio: aspectRatio,
+        }),
+      })
+
+      const rawText = await res.text()
+      if (!res.ok) {
+        throw new Error(`OpenRouter Image HTTP ${res.status}: ${rawText.slice(0, 240)}`)
+      }
+
+      const data = JSON.parse(rawText)
+      const item = data?.data?.[0]
+      let imgUrl = ''
+      if (item?.b64_json) {
+        imgUrl = `data:image/png;base64,${item.b64_json}`
+      } else if (item?.url) {
+        imgUrl = item.url
+      } else {
+        throw new Error('No image data returned by model.')
+      }
+
+      setGeneratedImages((prev) => [
+        {
+          id: String(Date.now()),
+          prompt: imagePrompt.trim(),
+          url: imgUrl,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+        ...prev,
+      ])
+    } catch (err: any) {
+      setImageError(err?.message || 'Failed to generate image.')
+    } finally {
+      setIsImageLoading(false)
+    }
+  }
+
+  return (
+    <div style={styles.appContainer}>
+      {style}
+      <aside data-luxvm-sidebar style={styles.sidebar}>
+        <div style={styles.sidebarBrand}>
+          <span style={styles.dot} />
+          <strong>LuxVM Studio</strong>
+        </div>
+
+        <nav style={styles.navMenu}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('chat')}
+            style={{ ...styles.navBtn, ...(activeTab === 'chat' ? styles.navBtnActive : {}) }}
+          >
+             General Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('voice')}
+            style={{ ...styles.navBtn, ...(activeTab === 'voice' ? styles.navBtnActive : {}) }}
+          >
+             Voice Assistant
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('codex')}
+            style={{ ...styles.navBtn, ...(activeTab === 'codex' ? styles.navBtnActive : {}) }}
+          >
+             Codex Studio
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('chess')}
+            style={{ ...styles.navBtn, ...(activeTab === 'chess' ? styles.navBtnActive : {}) }}
+          >
+             Chess Bot
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('image')}
+            style={{ ...styles.navBtn, ...(activeTab === 'image' ? styles.navBtnActive : {}) }}
+          >
+             Image Studio
+          </button>
+        </nav>
+
+        <div style={styles.divider} />
+
+        <div style={styles.sidebarHeader}>
+          <button type="button" onClick={createNewChat} style={styles.newChatBtn}>
+            + New Chat Thread
+          </button>
+        </div>
+
+        <div style={styles.sessionList}>
+          {sessions.map((session) => (
+            <div
+              key={session.id}
+              onClick={() => {
+                setActiveSessionId(session.id)
+                setActiveTab('chat')
+              }}
+              style={{
+                ...styles.sessionItem,
+                backgroundColor:
+                  activeTab === 'chat' && session.id === activeSessionId ? '#DED8CE' : 'transparent',
+              }}
+            >
+              <span style={styles.sessionTitle}>{session.title}</span>
+              <button
+                type="button"
+                onClick={(e) => deleteSession(session.id, e)}
+                style={styles.deleteBtn}
+                title="Delete Chat"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      <div style={styles.mainContent}>
+        <header style={styles.header}>
+          <div style={styles.brand}>
+            <strong>
+              {activeTab === 'chat' && ' General Chat'}
+              {activeTab === 'voice' && ' Voice Assistant'}
+              {activeTab === 'codex' && ' Codex Code Studio'}
+              {activeTab === 'chess' && ' Grandmaster Chess Bot'}
+              {activeTab === 'image' && ' Image Generation Studio'}
+            </strong>
+            <span style={styles.badge}>{models[activeTab]}</span>
+          </div>
+          <div style={styles.actions}>
+            <button
+              type="button"
+              onClick={() => setShowSettings(!showSettings)}
+              style={styles.primaryBtn}
+            >
+              {showSettings ? 'Close Settings' : ' Settings'}
+            </button>
+          </div>
+        </header>
+
+        {showSettings && (
+          <div style={styles.settingsPanel}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '15px' }}>
+              OpenRouter API Key, Models & Personality Memory
+            </h3>
+
+            <div style={styles.fieldRow}>
+              <label style={styles.label}>Global OpenRouter API Key (sk-or-...)</label>
+              <input
+                style={styles.input}
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-or-v1-..."
+              />
+            </div>
+
+            <div style={styles.grid2}>
+              <div>
+                <label style={styles.label}>Chat & Chess Model</label>
+                <input
+                  style={styles.input}
+                  value={models.chat}
+                  onChange={(e) =>
+                    setModels({ ...models, chat: e.target.value, chess: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label style={styles.label}>Voice Assistant Model</label>
+                <input
+                  style={styles.input}
+                  value={models.voice}
+                  onChange={(e) => setModels({ ...models, voice: e.target.value })}
+                />
+              </div>
+              <div>
+                <label style={styles.label}>Codex Studio Model</label>
+                <input
+                  style={styles.input}
+                  value={models.codex}
+                  onChange={(e) => setModels({ ...models, codex: e.target.value })}
+                />
+              </div>
+              <div>
+                <label style={styles.label}>Image Studio Model</label>
+                <input
+                  style={styles.input}
+                  value={models.image}
+                  onChange={(e) => setModels({ ...models, image: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
+              <label style={styles.label}>Permanent Personality / System Prompt</label>
+              <textarea
+                style={{ ...styles.input, height: '60px', resize: 'vertical', fontFamily: 'inherit' }}
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+              />
+            </div>
+
+            <button type="button" onClick={() => setShowSettings(false)} style={styles.primaryBtn}>
+              Done
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'chat' && (
+          <>
+            <main style={styles.chatArea}>
+              {currentSession?.messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  style={{
+                    ...styles.messageRow,
+                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                  }}
+                >
+                  <div
+                    style={{
+                      ...styles.bubble,
+                      backgroundColor:
+                        msg.role === 'user'
+                          ? '#A65F43'
+                          : msg.role === 'system'
+                          ? '#7f1d1d'
+                          : '#EAE6DE',
+                    }}
+                  >
+                    <div style={styles.meta}>
+                      <span>{msg.role === 'user' ? 'You' : msg.role === 'system' ? 'System' : 'LuxVM'}</span>
+                      <span>{msg.timestamp}</span>
+                    </div>
+                    <div style={styles.content}>{msg.content}</div>
+                  </div>
+                </div>
+              ))}
+              {isChatLoading && (
+                <div style={styles.messageRow}>
+                  <div style={{ ...styles.bubble, backgroundColor: '#EAE6DE', opacity: 0.8 }}>
+                    Thinking...
+                  </div>
+                </div>
+              )}
+              <div ref={chatBottomRef} />
+            </main>
+
+            <form onSubmit={sendChatMessage} style={styles.footer}>
+              <input
+                style={styles.chatInput}
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Message Nemotron 3.5 Lightning..."
+                disabled={isChatLoading}
+              />
+              <button type="submit" style={styles.sendBtn} disabled={isChatLoading || !chatInput.trim()}>
+                Send
+              </button>
+            </form>
+          </>
+        )}
+
+        {activeTab === 'voice' && (
+          <>
+            <div style={styles.voiceTopBar}>
+              <button
+                type="button"
+                onClick={toggleMicrophone}
+                style={{
+                  ...styles.micBtn,
+                  backgroundColor: isListening ? '#dc2626' : '#A65F43',
+                }}
+              >
+                {isListening ? ' Listening... (Click to Stop)' : ' Speak to Voice Assistant'}
+              </button>
+              <label style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={autoSpeak}
+                  onChange={(e) => setAutoSpeak(e.target.checked)}
+                />
+                Auto-Speak Replies (TTS)
+              </label>
+              <button
+                type="button"
+                onClick={() => window.speechSynthesis?.cancel()}
+                style={styles.secondaryBtn}
+              >
+                 Mute Voice
+              </button>
+            </div>
+
+            <main style={styles.chatArea}>
+              {voiceHistory.map((msg) => (
+                <div
+                  key={msg.id}
+                  style={{
+                    ...styles.messageRow,
+                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                  }}
+                >
+                  <div
+                    style={{
+                      ...styles.bubble,
+                      backgroundColor:
+                        msg.role === 'user'
+                          ? '#A65F43'
+                          : msg.role === 'system'
+                          ? '#7f1d1d'
+                          : '#EAE6DE',
+                    }}
+                  >
+                    <div style={styles.meta}>
+                      <span>{msg.role === 'user' ? 'You' : 'Voice Assistant'}</span>
+                      <span>{msg.timestamp}</span>
+                    </div>
+                    <div style={styles.content}>{msg.content}</div>
+                  </div>
+                </div>
+              ))}
+              {isVoiceLoading && (
+                <div style={styles.messageRow}>
+                  <div style={{ ...styles.bubble, backgroundColor: '#EAE6DE', opacity: 0.8 }}>
+                    Processing voice response...
+                  </div>
+                </div>
+              )}
+            </main>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                sendVoicePrompt(voiceInput)
+              }}
+              style={styles.footer}
+            >
+              <input
+                style={styles.chatInput}
+                value={voiceInput}
+                onChange={(e) => setVoiceInput(e.target.value)}
+                placeholder="Or type a message..."
+                disabled={isVoiceLoading}
+              />
+              <button type="submit" style={styles.sendBtn} disabled={isVoiceLoading || !voiceInput.trim()}>
+                Speak / Send
+              </button>
+            </form>
+          </>
+        )}
+
+        {activeTab === 'codex' && (
+          <div style={styles.codexContainer}>
+            <form onSubmit={generateCode} style={styles.codexLeft}>
+              <label style={styles.label}>Target Language / Stack</label>
+              <select
+                style={styles.input}
+                value={codexLang}
+                onChange={(e) => setCodexLang(e.target.value)}
+              >
+                <option>TypeScript / React</option>
+                <option>JavaScript</option>
+                <option>Python</option>
+                <option>HTML / CSS</option>
+                <option>C++</option>
+                <option>Rust</option>
+              </select>
+
+              <label style={{ ...styles.label, marginTop: '12px' }}>What should Codex build?</label>
+              <textarea
+                style={{ ...styles.input, flex: 1, resize: 'none', fontFamily: 'inherit', lineHeight: 1.5 }}
+                value={codexPrompt}
+                onChange={(e) => setCodexPrompt(e.target.value)}
+                placeholder="Describe the function, component, script, or algorithm..."
+              />
+
+              <button
+                type="submit"
+                style={{ ...styles.primaryBtn, marginTop: '12px', padding: '10px' }}
+                disabled={isCodexLoading || !codexPrompt.trim()}
+              >
+                {isCodexLoading ? ' Generating Code...' : ' Generate Code'}
+              </button>
+            </form>
+
+            <div style={styles.codexRight}>
+              <div style={styles.codexToolbar}>
+                <span style={{ fontSize: '12px', color: '#777065' }}>{codexLang} Output</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button type="button" onClick={copyCodeToClipboard} style={styles.secondaryBtn}>
+                    {copiedCode ? ' Copied!' : ' Copy Code'}
+                  </button>
+                  <button type="button" onClick={downloadCodeFile} style={styles.secondaryBtn}>
+                     Save File
+                  </button>
+                </div>
+              </div>
+              <pre style={styles.codeBlock}>
+                <code>{codexOutput}</code>
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'chess' && (
+          <div style={styles.chessContainer}>
+            <div style={styles.chessBoardWrapper}>
+              <div style={styles.chessStatusBar}>
+                <span>{chessStatus}</span>
+                <button type="button" onClick={resetChess} style={styles.secondaryBtn}>
+                   New Game
+                </button>
+              </div>
+
+              <div style={styles.chessBoard}>
+                {board.map((row, r) =>
+                  row.map((cell, c) => {
+                    const isDark = (r + c) % 2 === 1
+                    const isSelected = selectedSq?.[0] === r && selectedSq?.[1] === c
+                    const isLegalDest = legalTargets.some(([tr, tc]) => tr === r && tc === c)
+
+                    return (
+                      <div
+                        key={`${r}-${c}`}
+                        onClick={() => handleSquareClick(r, c)}
+                        style={{
+                          ...styles.chessSquare,
+                          backgroundColor: isSelected
+                            ? '#A65F43'
+                            : isDark
+                            ? '#DED8CE'
+                            : '#777065',
+                          color: cell && isWhitePiece(cell) ? '#292825' : '#EEEAE2',
+                        }}
+                      >
+                        {isLegalDest && <div style={styles.legalDot} />}
+                        {cell ? PIECE_UNICODE[cell] : ''}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+
+            <div style={styles.chessSidebar}>
+              <h4 style={{ margin: '0 0 10px 0' }}>Move History (UCI)</h4>
+              <div style={styles.moveList}>
+                {moveHistory.length === 0 ? (
+                  <span style={{ color: '#81796E', fontSize: '13px' }}>No moves yet. You play White.</span>
+                ) : (
+                  moveHistory.map((m, idx) => (
+                    <div key={idx} style={{ fontSize: '13px', padding: '3px 0' }}>
+                      {idx % 2 === 0 ? `${Math.floor(idx / 2) + 1}. ` : '   '}
+                      <strong>{m}</strong> ({idx % 2 === 0 ? 'You' : 'AI'})
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'image' && (
+          <div style={styles.imageContainer}>
+            <form onSubmit={generateImage} style={styles.imageControls}>
+              <input
+                style={{ ...styles.chatInput, flex: 1 }}
+                value={imagePrompt}
+                onChange={(e) => setImagePrompt(e.target.value)}
+                placeholder="Describe the image you want to create..."
+                disabled={isImageLoading}
+              />
+              <select
+                style={{ ...styles.input, width: '110px' }}
+                value={aspectRatio}
+                onChange={(e) => setAspectRatio(e.target.value)}
+              >
+                <option value="1:1">1:1 Square</option>
+                <option value="16:9">16:9 Wide</option>
+                <option value="9:16">9:16 Tall</option>
+                <option value="4:3">4:3 Photo</option>
+              </select>
+              <button
+                type="submit"
+                style={styles.sendBtn}
+                disabled={isImageLoading || !imagePrompt.trim()}
+              >
+                {isImageLoading ? 'Generating...' : ' Generate'}
+              </button>
+            </form>
+
+            {imageError && (
+              <div style={{ padding: '12px 20px', backgroundColor: '#7f1d1d', fontSize: '13px' }}>
+                {imageError}
+              </div>
+            )}
+
+            <div style={styles.imageGallery}>
+              {generatedImages.length === 0 && !isImageLoading && (
+                <div style={{ color: '#81796E', textAlign: 'center', marginTop: '60px' }}>
+                  Enter a prompt above to generate images using {models.image}
+                </div>
+              )}
+              {generatedImages.map((img) => (
+                <div key={img.id} style={styles.imageCard}>
+                  <img src={img.url} alt={img.prompt} style={styles.generatedImg} />
+                  <div style={styles.imageCardFooter}>
+                    <span style={{ fontSize: '12px', color: '#514D46', flex: 1 }}>{img.prompt}</span>
+                    <a
+                      href={img.url}
+                      download={`luxvm-image-${img.id}.png`}
+                      style={{ ...styles.secondaryBtn, textDecoration: 'none' }}
+                    >
+                       Download
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  appContainer: {
+    display: 'flex',
+    height: '100vh',
+    width: '100vw',
+    backgroundColor: '#F5F3EE',
+    color: '#292825',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    overflow: 'hidden',
+  },
+  sidebar: {
+    width: '250px',
+    backgroundColor: '#EEEAE2',
+    borderRight: '1px solid #EAE6DE',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  sidebarBrand: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '16px',
+    fontSize: '16px',
+    borderBottom: '1px solid #EAE6DE',
+  },
+  navMenu: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    padding: '10px',
+  },
+  navBtn: {
+    textAlign: 'left',
+    backgroundColor: 'transparent',
+    color: '#514D46',
+    border: 'none',
+    padding: '9px 12px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 500,
+  },
+  navBtnActive: {
+    backgroundColor: '#EAE6DE',
+    color: '#292825',
+    borderLeft: '3px solid #A65F43',
+  },
+  divider: {
+    height: '1px',
+    backgroundColor: '#EAE6DE',
+    margin: '4px 0',
+  },
+  sidebarHeader: {
+    padding: '10px',
+  },
+  newChatBtn: {
+    width: '100%',
+    backgroundColor: '#A65F43',
+    color: '#292825',
+    border: 'none',
+    padding: '8px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: 500,
+    fontSize: '12px',
+  },
+  sessionList: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '0 10px 10px 10px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  sessionItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '7px 10px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    color: '#514D46',
+  },
+  sessionTitle: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    flex: 1,
+  },
+  deleteBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#777065',
+    cursor: 'pointer',
+    fontSize: '15px',
+    padding: '0 4px',
+  },
+  mainContent: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    overflow: 'hidden',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '12px 20px',
+    backgroundColor: '#EAE6DE',
+    borderBottom: '1px solid #DED8CE',
+  },
+  brand: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    fontSize: '16px',
+  },
+  dot: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    backgroundColor: '#879078',
+  },
+  badge: {
+    fontSize: '11px',
+    padding: '3px 8px',
+    borderRadius: '12px',
+    backgroundColor: '#F5F3EE',
+    color: '#777065',
+    border: '1px solid #DED8CE',
+  },
+  actions: {
+    display: 'flex',
+    gap: '10px',
+  },
+  primaryBtn: {
+    backgroundColor: '#A65F43',
+    color: '#292825',
+    border: 'none',
+    padding: '7px 14px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 500,
+  },
+  secondaryBtn: {
+    backgroundColor: '#DED8CE',
+    color: '#292825',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '12px',
+  },
+  settingsPanel: {
+    padding: '16px 20px',
+    backgroundColor: '#EAE6DE',
+    borderBottom: '1px solid #DED8CE',
+  },
+  grid2: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '10px',
+  },
+  fieldRow: {
+    marginBottom: '10px',
+  },
+  label: {
+    display: 'block',
+    fontSize: '11px',
+    color: '#777065',
+    marginBottom: '4px',
+  },
+  input: {
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: '8px 10px',
+    borderRadius: '6px',
+    border: '1px solid #CFC8BC',
+    backgroundColor: '#F5F3EE',
+    color: '#292825',
+    fontSize: '13px',
+  },
+  chatArea: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  messageRow: {
+    display: 'flex',
+    width: '100%',
+  },
+  bubble: {
+    maxWidth: '75%',
+    padding: '12px 16px',
+    borderRadius: '12px',
+    lineHeight: 1.5,
+    fontSize: '14px',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+  },
+  meta: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '16px',
+    fontSize: '11px',
+    opacity: 0.7,
+    marginBottom: '4px',
+  },
+  content: {
+    margin: 0,
+  },
+  footer: {
+    display: 'flex',
+    gap: '10px',
+    padding: '14px 20px',
+    backgroundColor: '#EAE6DE',
+    borderTop: '1px solid #DED8CE',
+  },
+  chatInput: {
+    flex: 1,
+    padding: '10px 14px',
+    borderRadius: '8px',
+    border: '1px solid #CFC8BC',
+    backgroundColor: '#F5F3EE',
+    color: '#292825',
+    fontSize: '14px',
+    outline: 'none',
+  },
+  sendBtn: {
+    backgroundColor: '#A65F43',
+    color: '#292825',
+    border: 'none',
+    padding: '0 20px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: 600,
+    fontSize: '14px',
+  },
+  voiceTopBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    padding: '12px 20px',
+    backgroundColor: '#EEEAE2',
+    borderBottom: '1px solid #EAE6DE',
+  },
+  micBtn: {
+    color: '#292825',
+    border: 'none',
+    padding: '10px 18px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: 600,
+    fontSize: '13px',
+  },
+  codexContainer: {
+    display: 'flex',
+    flex: 1,
+    overflow: 'hidden',
+  },
+  codexLeft: {
+    width: '320px',
+    padding: '16px',
+    borderRight: '1px solid #EAE6DE',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: '#EEEAE2',
+  },
+  codexRight: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  codexToolbar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 16px',
+    backgroundColor: '#EAE6DE',
+    borderBottom: '1px solid #DED8CE',
+  },
+  codeBlock: {
+    flex: 1,
+    margin: 0,
+    padding: '16px',
+    overflow: 'auto',
+    backgroundColor: '#0b1120',
+    color: '#e2e8f0',
+    fontSize: '13px',
+    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+    lineHeight: 1.5,
+  },
+  chessContainer: {
+    display: 'flex',
+    flex: 1,
+    padding: '20px',
+    gap: '24px',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'auto',
+  },
+  chessBoardWrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  chessStatusBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#EAE6DE',
+    padding: '10px 14px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: 500,
+  },
+  chessBoard: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(8, 56px)',
+    gridTemplateRows: 'repeat(8, 56px)',
+    border: '3px solid #DED8CE',
+    borderRadius: '6px',
+    overflow: 'hidden',
+  },
+  chessSquare: {
+    width: '56px',
+    height: '56px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '36px',
+    cursor: 'pointer',
+    position: 'relative',
+    userSelect: 'none',
+  },
+  legalDot: {
+    position: 'absolute',
+    width: '14px',
+    height: '14px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(34, 197, 94, 0.65)',
+    pointerEvents: 'none',
+  },
+  chessSidebar: {
+    width: '220px',
+    height: '490px',
+    backgroundColor: '#EAE6DE',
+    borderRadius: '8px',
+    padding: '14px',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  moveList: {
+    flex: 1,
+    overflowY: 'auto',
+  },
+  imageContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    flex: 1,
+    overflow: 'hidden',
+  },
+  imageControls: {
+    display: 'flex',
+    gap: '10px',
+    padding: '14px 20px',
+    backgroundColor: '#EEEAE2',
+    borderBottom: '1px solid #EAE6DE',
+  },
+  imageGallery: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '20px',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: '16px',
+    alignContent: 'start',
+  },
+  imageCard: {
+    backgroundColor: '#EAE6DE',
+    borderRadius: '10px',
+    overflow: 'hidden',
+    border: '1px solid #DED8CE',
+  },
+  generatedImg: {
+    width: '100%',
+    display: 'block',
+  },
+  imageCardFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 12px',
+  },
+}
