@@ -44,6 +44,16 @@
       "target": [
         "nsis"
       ]
-    }
+    },
+    "extraResources": [
+      {
+        "from": "THIRD_PARTY_NOTICES.md",
+        "to": "THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "third_party/stockfish/Copying.txt",
+        "to": "licenses/stockfish-Copying.txt"
+      }
+    ]
   }
 }
