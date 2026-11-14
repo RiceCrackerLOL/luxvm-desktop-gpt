@@ -1,6 +1,6 @@
 {
   "name": "luxvm-desktop",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "LuxVM — a multi-modal AI workstation powered by OpenRouter",
   "main": "dist-electron/electron/main.js",
   "scripts": {
@@ -8,13 +8,15 @@
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && tsc -p tsconfig.electron.json && vite build && electron-builder --publish never",
     "preview": "vite preview",
-    "start": "electron ."
+    "start": "electron .",
+    "build:release": "npm run typecheck && tsc -p tsconfig.electron.json && vite build && electron-builder --win --publish always"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "mathjs": "^15.2.0",
-    "stockfish": "^19.0.1"
+    "stockfish": "^19.0.1",
+    "electron-updater": "^6.6.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -53,6 +55,14 @@
       {
         "from": "third_party/stockfish/Copying.txt",
         "to": "licenses/stockfish-Copying.txt"
+      }
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "RiceCrackerLOL",
+        "repo": "luxvm-releases",
+        "releaseType": "release"
       }
     ]
   }
