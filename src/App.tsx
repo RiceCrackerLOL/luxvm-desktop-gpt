@@ -448,7 +448,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [githubRepo, setGithubRepo] = useState<string>(() => safeGetStorage<any>(SETTINGS_KEY, {}).githubRepo || 'RiceCrackerLOL/luxvm-desktop-gpt')
   const [githubToken, setGithubToken] = useState('')
-  const [githubTargetPath, setGithubTargetPath] = useState('src/App.tsx')
+  const [githubTargetPath, setGithubTargetPath] = useState('src/generated-codex-output.txt')
   const [githubCommitMessage, setGithubCommitMessage] = useState('Update LuxVM from Codex Studio')
   const [showGithubApproval, setShowGithubApproval] = useState(false)
   const [isGithubPublishing, setIsGithubPublishing] = useState(false)
@@ -1671,6 +1671,13 @@ export default function App() {
             </p>
             <label style={styles.label}>Target file path</label>
             <input style={styles.input} value={githubTargetPath} onChange={(e) => setGithubTargetPath(e.target.value)} placeholder="src/App.tsx" />
+            <p style={{ margin: '8px 0', color: '#8A4938', fontSize: '11px', lineHeight: 1.45 }}>
+              Approval replaces the entire file at this path on main. Choose a complete file, not a partial code snippet.
+            </p>
+            <label style={styles.label}>Content preview</label>
+            <pre style={{ ...styles.codeBlock, flex: 'none', maxHeight: '150px', borderRadius: '6px', padding: '10px', fontSize: '11px' }}>
+              {codexOutput.slice(0, 2200)}{codexOutput.length > 2200 ? '\n… preview shortened' : ''}
+            </pre>
             <label style={{ ...styles.label, marginTop: '10px' }}>Commit message</label>
             <input style={styles.input} value={githubCommitMessage} onChange={(e) => setGithubCommitMessage(e.target.value)} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '18px' }}>
