@@ -1150,9 +1150,9 @@ export default function App() {
   }
 
   const globalStyle = <style>{`
-    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: #F5F3EE; color: #292825; }
+    body { margin: 0; background: #111210; color: #E8E6E0; }
     button, input, textarea, select { font: inherit; }
     button { transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
     button:hover { filter: brightness(.97); }
@@ -1162,7 +1162,7 @@ export default function App() {
     input:focus, textarea:focus, select:focus { border-color: #A65F43 !important; box-shadow: 0 0 0 3px rgba(166,95,67,.12); }
     ::selection { background: rgba(166,95,67,.18); }
     ::-webkit-scrollbar { width: 9px; height: 9px; }
-    ::-webkit-scrollbar-thumb { background: #CFC8BC; border: 2px solid #F5F3EE; border-radius: 20px; }
+    ::-webkit-scrollbar-thumb { background: #41423D; border: 2px solid #111210; border-radius: 20px; }
     ::-webkit-scrollbar-track { background: transparent; }
     @media (max-width: 760px) { [data-luxvm-sidebar] { width: 196px !important; min-width: 196px !important; } }
     @media (max-width: 560px) { [data-luxvm-sidebar] { width: 176px !important; min-width: 176px !important; } }
@@ -1234,7 +1234,7 @@ export default function App() {
               style={{
                 ...styles.sessionItem,
                 backgroundColor:
-                  activeTab === 'chat' && session.id === activeSessionId ? '#DED8CE' : 'transparent',
+                  activeTab === 'chat' && session.id === activeSessionId ? '#30312D' : 'transparent',
               }}
             >
               <span style={styles.sessionTitle}>{session.title}</span>
@@ -1303,7 +1303,7 @@ export default function App() {
             <div style={styles.fieldRow}>
               <label style={styles.label}>GitHub Personal Access Token</label>
               <input style={styles.input} type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} placeholder="github_pat_..." autoComplete="off" />
-              <span style={{ fontSize: '11px', color: '#777065' }}>Kept in memory only for this app session; it is not saved with your settings. Use a fine-grained token limited to this repository with Contents: Read and write.</span>
+              <span style={{ fontSize: '11px', color: '#9B988F' }}>Kept in memory only for this app session; it is not saved with your settings. Use a fine-grained token limited to this repository with Contents: Read and write.</span>
             </div>
 
             <div style={styles.grid2}>
@@ -1370,7 +1370,7 @@ export default function App() {
                   onChange={(e) => setSessions((prev) => prev.map((session) => session.id === currentSession.id ? { ...session, memory: e.target.value, updatedAt: Date.now() } : session))}
                   placeholder="Facts or preferences LuxVM should retain in this conversation..."
                 />
-                <span style={{ fontSize: '11px', color: '#777065' }}>Each chat has separate memory. Only details written here or explicitly marked “remember that” are saved as memory.</span>
+                <span style={{ fontSize: '11px', color: '#9B988F' }}>Each chat has separate memory. Only details written here or explicitly marked “remember that” are saved as memory.</span>
               </div>
             )}
 
@@ -1483,7 +1483,7 @@ export default function App() {
                           ? '#A65F43'
                           : msg.role === 'system'
                           ? '#7f1d1d'
-                          : '#EAE6DE',
+                          : '#20211E',
                     }}
                   >
                     <div style={styles.meta}>
@@ -1496,7 +1496,7 @@ export default function App() {
               ))}
               {isVoiceLoading && (
                 <div style={styles.messageRow}>
-                  <div style={{ ...styles.bubble, backgroundColor: '#EAE6DE', opacity: 0.8 }}>
+                  <div style={{ ...styles.bubble, backgroundColor: '#20211E', opacity: 0.8 }}>
                     Processing voice response...
                   </div>
                 </div>
@@ -1560,7 +1560,7 @@ export default function App() {
 
             <div style={styles.codexRight}>
               <div style={styles.codexToolbar}>
-                <span style={{ fontSize: '12px', color: '#777065' }}>{codexLang} Output</span>
+                <span style={{ fontSize: '12px', color: '#9B988F' }}>{codexLang} Output</span>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button type="button" onClick={copyCodeToClipboard} style={styles.secondaryBtn}>
                     {copiedCode ? ' Copied!' : ' Copy Code'}
@@ -1576,7 +1576,7 @@ export default function App() {
               <pre style={styles.codeBlock}>
                 <code>{codexOutput}</code>
               </pre>
-              {githubStatus && <div style={{ padding: '9px 16px', fontSize: '12px', color: githubStatus.startsWith('Committed') ? '#52664D' : '#8A4938', background: '#EEEAE2' }}>{githubStatus}</div>}
+              {githubStatus && <div style={{ padding: '9px 16px', fontSize: '12px', color: githubStatus.startsWith('Committed') ? '#52664D' : '#8A4938', background: '#171815' }}>{githubStatus}</div>}
             </div>
           </div>
         )}
@@ -1607,9 +1607,9 @@ export default function App() {
                           backgroundColor: isSelected
                             ? '#A65F43'
                             : isDark
-                            ? '#DED8CE'
-                            : '#777065',
-                          color: cell && isWhitePiece(cell) ? '#292825' : '#EEEAE2',
+                            ? '#30312D'
+                            : '#9B988F',
+                          color: cell && isWhitePiece(cell) ? '#E8E6E0' : '#171815',
                         }}
                       >
                         {isLegalDest && <div style={styles.legalDot} />}
@@ -1625,7 +1625,7 @@ export default function App() {
               <h4 style={{ margin: '0 0 10px 0' }}>Move History (UCI)</h4>
               <div style={styles.moveList}>
                 {moveHistory.length === 0 ? (
-                  <span style={{ color: '#81796E', fontSize: '13px' }}>No moves yet. You play White.</span>
+                  <span style={{ color: '#9B988F', fontSize: '13px' }}>No moves yet. You play White.</span>
                 ) : (
                   moveHistory.map((m, idx) => (
                     <div key={idx} style={{ fontSize: '13px', padding: '3px 0' }}>
@@ -1676,7 +1676,7 @@ export default function App() {
 
             <div style={styles.imageGallery}>
               {generatedImages.length === 0 && !isImageLoading && (
-                <div style={{ color: '#81796E', textAlign: 'center', marginTop: '60px' }}>
+                <div style={{ color: '#9B988F', textAlign: 'center', marginTop: '60px' }}>
                   Enter a prompt above to generate images using {models.image}
                 </div>
               )}
@@ -1684,7 +1684,7 @@ export default function App() {
                 <div key={img.id} style={styles.imageCard}>
                   <img src={img.url} alt={img.prompt} style={styles.generatedImg} />
                   <div style={styles.imageCardFooter}>
-                    <span style={{ fontSize: '12px', color: '#514D46', flex: 1 }}>{img.prompt}</span>
+                    <span style={{ fontSize: '12px', color: '#C6C2B8', flex: 1 }}>{img.prompt}</span>
                     <a
                       href={img.url}
                       download={`luxvm-image-${img.id}.png`}
@@ -1735,8 +1735,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
   },
   approvalModal: {
-    width: 'min(520px, 100%)', background: '#F5F3EE', color: '#292825',
-    border: '1px solid #DED8CE', borderRadius: '12px', padding: '22px',
+    width: 'min(520px, 100%)', background: '#111210', color: '#E8E6E0',
+    border: '1px solid #30312D', borderRadius: '12px', padding: '22px',
     boxShadow: '0 18px 60px rgba(35,32,28,.22)',
   },
   appContainer: {
@@ -1761,7 +1761,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '10px',
     padding: '16px',
     fontSize: '16px',
-    borderBottom: '1px solid #EAE6DE',
+    borderBottom: '1px solid #20211E',
   },
   navMenu: {
     display: 'flex',
@@ -1772,7 +1772,7 @@ const styles: Record<string, React.CSSProperties> = {
   navBtn: {
     textAlign: 'left',
     backgroundColor: 'transparent',
-    color: '#514D46',
+    color: '#C6C2B8',
     border: 'none',
     padding: '9px 12px',
     borderRadius: '6px',
@@ -1781,13 +1781,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
   },
   navBtnActive: {
-    backgroundColor: '#EAE6DE',
-    color: '#292825',
+    backgroundColor: '#20211E',
+    color: '#E8E6E0',
     borderLeft: '3px solid #A65F43',
   },
   divider: {
     height: '1px',
-    backgroundColor: '#EAE6DE',
+    backgroundColor: '#20211E',
     margin: '4px 0',
   },
   sidebarHeader: {
@@ -1796,7 +1796,7 @@ const styles: Record<string, React.CSSProperties> = {
   newChatBtn: {
     width: '100%',
     backgroundColor: '#A65F43',
-    color: '#FFFDF9',
+    color: '#151613',
     border: 'none',
     padding: '8px',
     borderRadius: '6px',
@@ -1820,7 +1820,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '12px',
-    color: '#514D46',
+    color: '#C6C2B8',
   },
   sessionTitle: {
     overflow: 'hidden',
@@ -1831,7 +1831,7 @@ const styles: Record<string, React.CSSProperties> = {
   deleteBtn: {
     background: 'none',
     border: 'none',
-    color: '#777065',
+    color: '#9B988F',
     cursor: 'pointer',
     fontSize: '15px',
     padding: '0 4px',
@@ -1867,9 +1867,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '11px',
     padding: '3px 8px',
     borderRadius: '12px',
-    backgroundColor: '#F5F3EE',
-    color: '#777065',
-    border: '1px solid #DED8CE',
+    backgroundColor: '#111210',
+    color: '#9B988F',
+    border: '1px solid #30312D',
   },
   actions: {
     display: 'flex',
@@ -1877,7 +1877,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   primaryBtn: {
     backgroundColor: '#A65F43',
-    color: '#FFFDF9',
+    color: '#151613',
     border: 'none',
     padding: '7px 14px',
     borderRadius: '6px',
@@ -1886,8 +1886,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
   },
   secondaryBtn: {
-    backgroundColor: '#DED8CE',
-    color: '#292825',
+    backgroundColor: '#30312D',
+    color: '#E8E6E0',
     border: 'none',
     padding: '6px 12px',
     borderRadius: '6px',
@@ -1910,7 +1910,7 @@ const styles: Record<string, React.CSSProperties> = {
   label: {
     display: 'block',
     fontSize: '11px',
-    color: '#777065',
+    color: '#9B988F',
     marginBottom: '4px',
   },
   input: {
@@ -1918,13 +1918,16 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: 'border-box',
     padding: '8px 10px',
     borderRadius: '6px',
-    border: '1px solid #CFC8BC',
+    border: '1px solid #41423D',
     backgroundColor: '#20211E',
     color: '#E8E6E0',
     fontSize: '13px',
   },
   chatArea: {
     flex: 1,
+    width: '100%',
+    maxWidth: '1040px',
+    margin: '0 auto',
     overflowY: 'auto',
     padding: '42px 28px 24px',
     display: 'flex',
@@ -1957,6 +1960,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   footer: {
     display: 'flex',
+    width: '100%',
+    maxWidth: '940px',
+    margin: '0 auto',
+    borderTop: 'none',
     gap: '10px',
     padding: '14px 20px 22px',
     backgroundColor: '#111210',
@@ -1966,10 +1973,12 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     padding: '10px 14px',
     borderRadius: '8px',
-    border: '1px solid #CFC8BC',
+    border: '1px solid #41423D',
     backgroundColor: '#20211E',
     color: '#E8E6E0',
     fontSize: '14px',
+    borderRadius: '16px',
+    padding: '14px 18px',
     outline: 'none',
   },
   sendBtn: {
@@ -1987,11 +1996,11 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '16px',
     padding: '12px 20px',
-    backgroundColor: '#EEEAE2',
-    borderBottom: '1px solid #EAE6DE',
+    backgroundColor: '#171815',
+    borderBottom: '1px solid #20211E',
   },
   micBtn: {
-    color: '#292825',
+    color: '#E8E6E0',
     border: 'none',
     padding: '10px 18px',
     borderRadius: '8px',
@@ -2007,10 +2016,10 @@ const styles: Record<string, React.CSSProperties> = {
   codexLeft: {
     width: '320px',
     padding: '16px',
-    borderRight: '1px solid #EAE6DE',
+    borderRight: '1px solid #20211E',
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: '#EEEAE2',
+    backgroundColor: '#171815',
   },
   codexRight: {
     flex: 1,
@@ -2023,15 +2032,15 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '10px 16px',
-    backgroundColor: '#EAE6DE',
-    borderBottom: '1px solid #DED8CE',
+    backgroundColor: '#20211E',
+    borderBottom: '1px solid #30312D',
   },
   codeBlock: {
     flex: 1,
     margin: 0,
     padding: '16px',
     overflow: 'auto',
-    backgroundColor: '#0b1120',
+    backgroundColor: '#151613',
     color: '#e2e8f0',
     fontSize: '13px',
     fontFamily: 'Consolas, Monaco, "Courier New", monospace',
@@ -2055,7 +2064,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#EAE6DE',
+    backgroundColor: '#20211E',
     padding: '10px 14px',
     borderRadius: '8px',
     fontSize: '13px',
@@ -2065,7 +2074,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'grid',
     gridTemplateColumns: 'repeat(8, 56px)',
     gridTemplateRows: 'repeat(8, 56px)',
-    border: '3px solid #DED8CE',
+    border: '3px solid #30312D',
     borderRadius: '6px',
     overflow: 'hidden',
   },
@@ -2091,7 +2100,7 @@ const styles: Record<string, React.CSSProperties> = {
   chessSidebar: {
     width: '220px',
     height: '490px',
-    backgroundColor: '#EAE6DE',
+    backgroundColor: '#20211E',
     borderRadius: '8px',
     padding: '14px',
     display: 'flex',
@@ -2111,8 +2120,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     gap: '10px',
     padding: '14px 20px',
-    backgroundColor: '#EEEAE2',
-    borderBottom: '1px solid #EAE6DE',
+    backgroundColor: '#171815',
+    borderBottom: '1px solid #20211E',
   },
   imageGallery: {
     flex: 1,
@@ -2124,10 +2133,10 @@ const styles: Record<string, React.CSSProperties> = {
     alignContent: 'start',
   },
   imageCard: {
-    backgroundColor: '#EAE6DE',
+    backgroundColor: '#20211E',
     borderRadius: '10px',
     overflow: 'hidden',
-    border: '1px solid #DED8CE',
+    border: '1px solid #30312D',
   },
   generatedImg: {
     width: '100%',
