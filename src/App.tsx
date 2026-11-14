@@ -1376,6 +1376,27 @@ export default function App() {
               OpenRouter API Key, Models & Personality Memory
             </h3>
 
+            <div style={{ ...styles.fieldRow, padding: '12px', border: '1px solid #41423D', borderRadius: '8px', background: '#20211E' }}>
+              <label style={styles.label}>LuxVM Updates</label>
+              <div style={{ fontSize: '12px', color: '#C6C2B8', marginBottom: '10px' }} role="status">{updateStatus}</div>
+              {updateProgress > 0 && updateProgress < 100 && (
+                <div style={{ height: '5px', background: '#30312D', borderRadius: '5px', overflow: 'hidden', marginBottom: '10px' }}>
+                  <div style={{ width: `${updateProgress}%`, height: '100%', background: '#A65F43' }} />
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button type="button" onClick={checkForLuxVMUpdates} style={styles.secondaryBtn}>Check for updates</button>
+                {updateStatus.startsWith('Update ') && updateStatus.includes('available') && (
+                  <button type="button" onClick={downloadLuxVMUpdate} style={styles.secondaryBtn}>Download update</button>
+                )}
+                {updateStatus.includes('ready to install') && (
+                  <button type="button" onClick={installLuxVMUpdate} style={styles.primaryBtn}>Restart and install</button>
+                )}
+              </div>
+              <span style={{ display: 'block', fontSize: '11px', color: '#9B988F', marginTop: '8px' }}>Updates download from the public LuxVM releases repository. Your chats and settings remain stored locally.</span>
+            </div>
+
+
             <div style={styles.fieldRow}>
               <label style={styles.label}>Global OpenRouter API Key (sk-or-...)</label>
               <input
