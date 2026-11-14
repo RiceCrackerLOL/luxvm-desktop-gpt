@@ -129,24 +129,27 @@ function safeSetStorage(key: string, value: unknown): void {
 
 type ResponseTier = 'quick' | 'standard' | 'deep'
 
+// LuxVM does not impose a small output ceiling on demanding questions.
+// The selected model/provider still controls its actual context and output limits.
+const DEEP_RESPONSE_TOKEN_CEILING = 200000
+
 function isMathPrompt(prompt: string): boolean {
-  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial)\b/i.test(prompt)
+  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed)\b|\d\s*(?:\^|\*\*|×|÷|\/|\+|-)\s*\d/i.test(prompt)
 }
 
 function classifyResponseTier(prompt: string): ResponseTier {
   const value = prompt.trim().toLowerCase()
-  const complexSignals = /\b(prove|derive|debug|architect|design|compare|evaluate|analy[sz]e|step[- ]by[- ]step|multi[- ]step|in depth|deep dive|optimi[sz]e|algorithm|proof|theorem|differential|integral|matrix|recursion|trade-?offs)\b/
-  if (isMathPrompt(value) && (complexSignals.test(value) || value.length > 120)) return 'deep'
+  const complexSignals = /\b(prove|derive|debug|architect|design|compare|evaluate|analy[sz]e|step[- ]by[- ]step|multi[- ]step|in depth|deep dive|optimi[sz]e|algorithm|proof|theorem|differential|integral|matrix|recursion|trade-?offs|raised to|exponent|exponential|power|factorial|summation|series)\b/
+  const mathematicalExpression = /\d\s*(?:\^|\*\*|×|÷|\/|\+|-)\s*\d/.test(value)
+  if (isMathPrompt(value) && (complexSignals.test(value) || mathematicalExpression || value.length > 120)) return 'deep'
   if (complexSignals.test(value) || value.length > 650 || (value.match(/\n/g) || []).length >= 3) return 'deep'
   if (/^(what is|what's|whats|who is|when did|where is|define|how many|how much)\b/.test(value) && value.length < 140) return 'quick'
-  if (value.length < 90 && !/[;{}]/.test(value)) return 'quick'
+  if (value.length < 90 && !/[;{}]/.test(value) && !isMathPrompt(value)) return 'quick'
   return 'standard'
 }
 
 function getResponseBudget(prompt: string): number {
-  const tier = classifyResponseTier(prompt)
-  if (isMathPrompt(prompt) && tier === 'deep') return 16000
-  return tier === 'quick' ? 1024 : tier === 'deep' ? 4096 : 2048
+  return classifyResponseTier(prompt) === 'deep' ? DEEP_RESPONSE_TOKEN_CEILING : 2048
 }
 
 function getCalculatorContext(prompt: string): string {
@@ -606,7 +609,7 @@ export default function App() {
     setIsChatLoading(true)
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 90000)
+    const responseTierForTimeout = classifyResponseTier(trimmed)\n    const requestTimeoutMs = responseTierForTimeout === 'deep' ? 10 * 60 * 1000 : 90 * 1000\n    const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs)
 
     try {
       if (!apiKey.trim()) {
@@ -636,7 +639,7 @@ export default function App() {
         body: JSON.stringify({
           model: mathQuestion && models.math.trim() ? models.math.trim() : models.chat,
           messages: outboundMessages,
-          max_tokens: getResponseBudget(trimmed),
+          max_completion_tokens: getResponseBudget(trimmed),
           ...(mathQuestion && responseTier === 'deep' ? { reasoning: { effort: 'high', exclude: true } } : {}),
         }),
         signal: controller.signal,
@@ -678,7 +681,7 @@ export default function App() {
                   {
                     id: String(Date.now() + 1),
                     role: 'system',
-                    content: `Error: ${err?.name === 'AbortError' ? 'The request timed out after 45 seconds. Please try again.' : err?.message}`,
+                    content: `Error: ${err?.name === 'AbortError' ? `The request timed out after ${Math.round(requestTimeoutMs / 60000)} minute(s). Please try again or select a faster model.` : err?.message}`,
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                   },
                 ],
