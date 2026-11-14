@@ -609,7 +609,9 @@ export default function App() {
     setIsChatLoading(true)
 
     const controller = new AbortController()
-    const responseTierForTimeout = classifyResponseTier(trimmed)\n    const requestTimeoutMs = responseTierForTimeout === 'deep' ? 10 * 60 * 1000 : 90 * 1000\n    const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs)
+    const responseTierForTimeout = classifyResponseTier(trimmed)
+    const requestTimeoutMs = responseTierForTimeout === 'deep' ? 10 * 60 * 1000 : 90 * 1000
+    const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs)
 
     try {
       if (!apiKey.trim()) {
