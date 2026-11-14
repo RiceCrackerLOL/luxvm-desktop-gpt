@@ -1,0 +1,57 @@
+name: Build LuxVM Desktop
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: luxvm-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build for ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+            artifact: release/*.exe
+          - platform: macos
+            os: macos-latest
+            artifact: release/*.dmg
+          - platform: linux
+            os: ubuntu-latest
+            artifact: release/*.AppImage
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Type-check, build, and package
+        run: npm run build
+
+      - name: Upload desktop installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuxVM-${{ matrix.platform }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 14
