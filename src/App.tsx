@@ -1453,7 +1453,7 @@ const styles: Record<string, React.CSSProperties> = {
   newChatBtn: {
     width: '100%',
     backgroundColor: '#A65F43',
-    color: '#292825',
+    color: '#FFFDF9',
     border: 'none',
     padding: '8px',
     borderRadius: '6px',
@@ -1534,7 +1534,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   primaryBtn: {
     backgroundColor: '#A65F43',
-    color: '#292825',
+    color: '#FFFDF9',
     border: 'none',
     padding: '7px 14px',
     borderRadius: '6px',
@@ -1631,7 +1631,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sendBtn: {
     backgroundColor: '#A65F43',
-    color: '#292825',
+    color: '#FFFDF9',
     border: 'none',
     padding: '0 20px',
     borderRadius: '8px',
