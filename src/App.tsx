@@ -89,7 +89,8 @@ function getOpenRouterError(rawText: string, status: number): string {
 }
 
 function extractOpenRouterText(data: any, fallback: string): string {
-  const content = data?.choices?.[0]?.message?.content
+  const choice = data?.choices?.[0]
+  const content = choice?.message?.content
   if (typeof content === 'string' && content.trim()) return content.trim()
   if (Array.isArray(content)) {
     const text = content
@@ -99,7 +100,12 @@ function extractOpenRouterText(data: any, fallback: string): string {
       .trim()
     if (text) return text
   }
-  return fallback
+  const finishReason = choice?.finish_reason || 'not provided'
+  const completionTokens = data?.usage?.completion_tokens
+  const usageNote = Number.isFinite(completionTokens) ? ` Completion tokens: ${completionTokens}.` : ''
+  if (finishReason === 'length') return `The model stopped at its output-token limit without returning visible text. Increase the response budget or choose a model with a larger output limit.${usageNote}`
+  if (choice?.message?.refusal) return `The model declined this request: ${String(choice.message.refusal).slice(0, 500)}`
+  return `${fallback} (finish_reason: ${finishReason}.${usageNote})`
 }
 
 function safeGetStorage<T>(key: string, fallback: T): T {
@@ -140,7 +146,7 @@ function classifyResponseTier(prompt: string): ResponseTier {
 function getResponseBudget(prompt: string): number {
   const tier = classifyResponseTier(prompt)
   if (isMathPrompt(prompt) && tier === 'deep') return 16000
-  return tier === 'quick' ? 180 : tier === 'deep' ? 1400 : 650
+  return tier === 'quick' ? 1024 : tier === 'deep' ? 4096 : 2048
 }
 
 function getCalculatorContext(prompt: string): string {
@@ -458,12 +464,40 @@ export default function App() {
     })
   }, [apiKey, systemPrompt, models, githubRepo])
 
-  const openRouterHeaders = () => ({
+  const openRouterHeaders = (key = apiKey) => ({
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey.trim()}`,
+    Authorization: `Bearer ${key.trim()}`,
     'HTTP-Referer': 'https://luxvm.desktop',
     'X-Title': 'LuxVM Desktop',
   })
+
+  const testOpenRouterConnection = async () => {
+    const key = apiKey.trim()
+    if (!key) { setApiStatus('Enter an OpenRouter API key first.'); return }
+    setIsTestingApi(true)
+    setApiStatus('Checking key and model access…')
+    try {
+      const response = await fetch(OPENROUTER_CHAT_URL, {
+        method: 'POST',
+        headers: openRouterHeaders(key),
+        body: JSON.stringify({
+          model: models.chat.trim(),
+          messages: [{ role: 'user', content: 'Reply with exactly: LuxVM connection successful.' }],
+          max_tokens: 64,
+        }),
+      })
+      const raw = await response.text()
+      if (!response.ok) throw new Error(getOpenRouterError(raw, response.status))
+      const data = JSON.parse(raw)
+      const text = extractOpenRouterText(data, '')
+      if (!text) throw new Error('OpenRouter accepted the request but returned no visible text. Check the model response details.')
+      setApiStatus(`Connection successful — ${models.chat.trim()} responded.`)
+    } catch (error: any) {
+      setApiStatus(error?.message || 'Connection test failed.')
+    } finally {
+      setIsTestingApi(false)
+    }
+  }
 
   // 1. General Chat
   const [sessions, setSessions] = useState<ChatSession[]>(() => {
@@ -494,6 +528,8 @@ export default function App() {
 
   const [chatInput, setChatInput] = useState('')
   const [isChatLoading, setIsChatLoading] = useState(false)
+  const [apiStatus, setApiStatus] = useState('')
+  const [isTestingApi, setIsTestingApi] = useState(false)
   const chatBottomRef = useRef<HTMLDivElement | null>(null)
   const currentSession = sessions.find((s) => s.id === activeSessionId) || sessions[0]
 
@@ -567,7 +603,7 @@ export default function App() {
     setIsChatLoading(true)
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 45000)
+    const timeoutId = setTimeout(() => controller.abort(), 90000)
 
     try {
       if (!apiKey.trim()) {
@@ -589,9 +625,11 @@ export default function App() {
           .map((m) => ({ role: m.role, content: m.content })),
       ]
 
+      const requestApiKey = apiKey.trim()
+      if (!requestApiKey) throw new Error('OpenRouter API key is empty. Re-enter it in Settings and save.')
       const res = await fetch(OPENROUTER_CHAT_URL, {
         method: 'POST',
-        headers: openRouterHeaders(),
+        headers: openRouterHeaders(requestApiKey),
         body: JSON.stringify({
           model: mathQuestion && models.math.trim() ? models.math.trim() : models.chat,
           messages: outboundMessages,
@@ -1245,9 +1283,14 @@ export default function App() {
                 style={styles.input}
                 type="password"
                 value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+                onChange={(e) => { setApiKey(e.target.value); setApiStatus('') }}
                 placeholder="sk-or-v1-..."
+                autoComplete="off"
               />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
+                <button type="button" onClick={testOpenRouterConnection} style={styles.secondaryBtn} disabled={isTestingApi || !apiKey.trim()}>{isTestingApi ? 'Testing…' : 'Test OpenRouter connection'}</button>
+                {apiStatus && <span role="status" style={{ fontSize: '12px', color: apiStatus.startsWith('Connection successful') ? '#A8B99A' : '#D49A83' }}>{apiStatus}</span>}
+              </div>
             </div>
 
             <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
@@ -1350,10 +1393,10 @@ export default function App() {
                       ...styles.bubble,
                       backgroundColor:
                         msg.role === 'user'
-                          ? '#A65F43'
+                          ? '#292B27'
                           : msg.role === 'system'
-                          ? '#7f1d1d'
-                          : '#EAE6DE',
+                          ? '#422B27'
+                          : 'transparent',
                     }}
                   >
                     <div style={styles.meta}>
@@ -1366,8 +1409,9 @@ export default function App() {
               ))}
               {isChatLoading && (
                 <div style={styles.messageRow}>
-                  <div style={{ ...styles.bubble, backgroundColor: '#EAE6DE', opacity: 0.8 }}>
-                    Thinking...
+                  <div style={{ ...styles.bubble, backgroundColor: 'transparent', color: '#A8A69E' }}>
+                    <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: '#A65F43', marginRight: '9px' }} />
+                    Thinking…
                   </div>
                 </div>
               )}
@@ -1379,7 +1423,7 @@ export default function App() {
                 style={styles.chatInput}
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder={`Message ${models.chat}...`}
+                placeholder="Ask LuxVM anything…"
                 disabled={isChatLoading}
               />
               <button type="submit" style={styles.sendBtn} disabled={isChatLoading || !chatInput.trim()}>
@@ -1696,15 +1740,15 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     height: '100vh',
     width: '100vw',
-    backgroundColor: '#F5F3EE',
-    color: '#292825',
+    backgroundColor: '#111210',
+    color: '#E8E6E0',
     fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     overflow: 'hidden',
   },
   sidebar: {
-    width: '250px',
-    backgroundColor: '#EEEAE2',
-    borderRight: '1px solid #EAE6DE',
+    width: '228px',
+    backgroundColor: '#171815',
+    borderRight: '1px solid #292A26',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -1801,8 +1845,8 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 20px',
-    backgroundColor: '#EAE6DE',
-    borderBottom: '1px solid #DED8CE',
+    backgroundColor: '#111210',
+    borderBottom: '1px solid #292A26',
   },
   brand: {
     display: 'flex',
@@ -1849,8 +1893,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   settingsPanel: {
     padding: '16px 20px',
-    backgroundColor: '#EAE6DE',
-    borderBottom: '1px solid #DED8CE',
+    backgroundColor: '#191A17',
+    borderBottom: '1px solid #292A26',
   },
   grid2: {
     display: 'grid',
@@ -1872,26 +1916,26 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 10px',
     borderRadius: '6px',
     border: '1px solid #CFC8BC',
-    backgroundColor: '#F5F3EE',
-    color: '#292825',
+    backgroundColor: '#20211E',
+    color: '#E8E6E0',
     fontSize: '13px',
   },
   chatArea: {
     flex: 1,
     overflowY: 'auto',
-    padding: '20px',
+    padding: '42px 28px 24px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: '18px',
   },
   messageRow: {
     display: 'flex',
     width: '100%',
   },
   bubble: {
-    maxWidth: '75%',
+    maxWidth: 'min(820px, 88%)',
     padding: '12px 16px',
-    borderRadius: '12px',
+    borderRadius: '14px',
     lineHeight: 1.5,
     fontSize: '14px',
     whiteSpace: 'pre-wrap',
@@ -1911,23 +1955,23 @@ const styles: Record<string, React.CSSProperties> = {
   footer: {
     display: 'flex',
     gap: '10px',
-    padding: '14px 20px',
-    backgroundColor: '#EAE6DE',
-    borderTop: '1px solid #DED8CE',
+    padding: '14px 20px 22px',
+    backgroundColor: '#111210',
+    borderTop: '1px solid #292A26',
   },
   chatInput: {
     flex: 1,
     padding: '10px 14px',
     borderRadius: '8px',
     border: '1px solid #CFC8BC',
-    backgroundColor: '#F5F3EE',
-    color: '#292825',
+    backgroundColor: '#20211E',
+    color: '#E8E6E0',
     fontSize: '14px',
     outline: 'none',
   },
   sendBtn: {
-    backgroundColor: '#A65F43',
-    color: '#FFFDF9',
+    backgroundColor: '#E8E6E0',
+    color: '#20211E',
     border: 'none',
     padding: '0 20px',
     borderRadius: '8px',
