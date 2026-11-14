@@ -291,7 +291,7 @@ function boardToFen(board: Board, turn: 'w' | 'b', history: string[] = []): stri
   return `${rows.join('/')} ${turn} ${castling} ${enPassant} 0 1`
 }
 
-function getPseudoLegalMoves(board: Board, r: number, c: number): [number, number][] {
+function getPseudoLegalMoves(board: Board, r: number, c: number, history: string[] = []): [number, number][] {
   const piece = board[r][c]
   if (!piece) return []
   const white = isWhitePiece(piece)
@@ -320,6 +320,15 @@ function getPseudoLegalMoves(board: Board, r: number, c: number): [number, numbe
     for (const dc of [-1, 1]) {
       if (inBounds(r + dir, c + dc) && isEnemy(r + dir, c + dc)) {
         moves.push([r + dir, c + dc])
+      }
+    }
+    const previousMove = history[history.length - 1]
+    if (previousMove && /^[a-h][27][a-h][45]$/.test(previousMove)) {
+      const fromRow = 8 - Number(previousMove[1])
+      const toRow = 8 - Number(previousMove[3])
+      const toCol = 'abcdefgh'.indexOf(previousMove[2])
+      if (Math.abs(fromRow - toRow) === 2 && toRow === r && Math.abs(toCol - c) === 1 && board[r][toCol]?.toLowerCase() === 'p') {
+        moves.push([r + dir, toCol])
       }
     }
   } else if (type === 'N') {
@@ -424,14 +433,14 @@ function isKingInCheck(board: Board, whiteKing: boolean): boolean {
   return false
 }
 
-function getAllLegalMoves(board: Board, whiteTurn: boolean): string[] {
+function getAllLegalMoves(board: Board, whiteTurn: boolean, history: string[] = []): string[] {
   const legalUcis: string[] = []
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       const p = board[r][c]
       if (!p) continue
       if (whiteTurn ? isWhitePiece(p) : isBlackPiece(p)) {
-        const dests = getPseudoLegalMoves(board, r, c)
+        const dests = getPseudoLegalMoves(board, r, c, history)
         for (const [nr, nc] of dests) {
           const testBoard = applyRawMove(board, r, c, nr, nc)
           if (!isKingInCheck(testBoard, whiteTurn)) {
@@ -1045,7 +1054,7 @@ export default function App() {
 
     if (clickedPiece && isWhitePiece(clickedPiece)) {
       setSelectedSq([r, c])
-      const allWhiteMoves = getAllLegalMoves(board, true)
+      const allWhiteMoves = getAllLegalMoves(board, true, moveHistory)
       const targets: [number, number][] = []
       for (const uci of allWhiteMoves) {
         const parsed = uciToCoords(uci)
@@ -1075,7 +1084,7 @@ export default function App() {
       setLegalTargets([])
       setMoveHistory(nextHistory)
 
-      const blackLegalMoves = getAllLegalMoves(afterPlayerBoard, false)
+      const blackLegalMoves = getAllLegalMoves(afterPlayerBoard, false, nextHistory)
       if (blackLegalMoves.length === 0) {
         setChessStatus(
           isKingInCheck(afterPlayerBoard, false)
@@ -1105,7 +1114,7 @@ export default function App() {
         setBoard(afterAiBoard)
         setMoveHistory(updatedHist)
 
-        const whiteLegalAfter = getAllLegalMoves(afterAiBoard, true)
+        const whiteLegalAfter = getAllLegalMoves(afterAiBoard, true, updatedHist)
         if (whiteLegalAfter.length === 0) {
           setChessStatus(
             isKingInCheck(afterAiBoard, true)
@@ -1343,12 +1352,12 @@ export default function App() {
 
             <div style={styles.grid2}>
               <div>
-                <label style={styles.label}>Chat & Chess Model</label>
+                <label style={styles.label}>Chat Model</label>
                 <input
                   style={styles.input}
                   value={models.chat}
                   onChange={(e) =>
-                    setModels({ ...models, chat: e.target.value, chess: e.target.value })
+                    setModels({ ...models, chat: e.target.value })
                   }
                 />
               </div>
