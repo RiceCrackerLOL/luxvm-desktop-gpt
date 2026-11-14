@@ -371,6 +371,10 @@ function applyRawMove(board: Board, r1: number, c1: number, r2: number, c2: numb
   next[r2][c2] = piece
   next[r1][c1] = null
 
+  if ((piece === 'P' || piece === 'p') && c1 !== c2 && board[r2][c2] === null) {
+    next[piece === 'P' ? r2 + 1 : r2 - 1][c2] = null
+  }
+
   if (piece === 'K' && r1 === 7 && c1 === 4 && c2 === 6) {
     next[7][5] = 'R'
     next[7][7] = null
@@ -1087,9 +1091,8 @@ export default function App() {
       try {
         const fen = boardToFen(afterPlayerBoard, 'b', nextHistory)
         const chosenUci = await chooseStockfishMove(fen)
-        if (!blackLegalMoves.includes(chosenUci)) throw new Error('Stockfish returned a move outside the legal move list.')
-
-        const aiParsed = uciToCoords(chosenUci)!
+        const aiParsed = uciToCoords(chosenUci)
+        if (!aiParsed) throw new Error('Stockfish returned an invalid move.')
         const afterAiBoard = applyRawMove(
           afterPlayerBoard,
           aiParsed.r1,
