@@ -47,6 +47,57 @@ const DEFAULT_MODELS: ModelConfig = {
   image: 'recraft/recraft-v4.1-flash-v2:free',
 }
 
+const DEFAULT_SYSTEM_PROMPT = `You are LuxVM, a capable, thoughtful desktop AI assistant.
+
+How to respond:
+- Understand the user's actual goal and answer the request directly before adding context.
+- Be accurate and honest. Never invent facts, sources, capabilities, actions, or completed work.
+- If information may be uncertain or time-sensitive, say so and explain what would verify it.
+- Ask a concise clarifying question only when a missing detail prevents a useful answer; otherwise make a sensible assumption and state it when relevant.
+- Adapt depth to the task. Be concise for simple requests and thorough for complex ones.
+- Use clear structure for multi-step explanations. Prefer practical examples and actionable steps.
+- For code, provide complete, maintainable, secure solutions; explain important assumptions and edge cases.
+- Preserve the user's stated preferences and existing work. Do not make unrelated changes.
+- Use a calm, natural, professional tone. Avoid filler, excessive enthusiasm, and emojis.`
+
+function getOpenRouterError(rawText: string, status: number): string {
+  let detail = ''
+  try {
+    const parsed = JSON.parse(rawText)
+    detail = parsed?.error?.message || parsed?.message || ''
+  } catch {
+    detail = rawText.replace(/\s+/g, ' ').trim().slice(0, 240)
+  }
+
+  const statusHint: Record<number, string> = {
+    400: 'The request was rejected. Check the selected model and request settings.',
+    401: 'The API key was rejected. Check your OpenRouter key in Settings.',
+    402: 'OpenRouter reports insufficient credits or payment capacity for this request.',
+    403: 'The request was blocked. Check model access and provider permissions.',
+    404: 'The selected model or endpoint could not be found.',
+    408: 'The request timed out. Please try again.',
+    429: 'The model is receiving too many requests. Wait a moment and try again.',
+    500: 'The model provider encountered an internal error. Try again shortly.',
+    502: 'The model provider is temporarily unavailable. Try again shortly.',
+    503: 'The model provider is overloaded or unavailable. Try again shortly.',
+  }
+  return [`OpenRouter error (HTTP ${status}).`, statusHint[status], detail].filter(Boolean).join(' ')
+}
+
+function extractOpenRouterText(data: any, fallback: string): string {
+  const content = data?.choices?.[0]?.message?.content
+  if (typeof content === 'string' && content.trim()) return content.trim()
+  if (Array.isArray(content)) {
+    const text = content
+      .filter((part: any) => part?.type === 'text' && typeof part.text === 'string')
+      .map((part: any) => part.text)
+      .join('\n')
+      .trim()
+    if (text) return text
+  }
+  return fallback
+}
+
 function safeGetStorage<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
@@ -292,13 +343,13 @@ export default function App() {
 
   const initialSettings = safeGetStorage(SETTINGS_KEY, {
     apiKey: '',
-    systemPrompt: 'You are LuxVM, a helpful, precise, and direct AI desktop assistant.',
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
     models: DEFAULT_MODELS,
   })
 
   const [apiKey, setApiKey] = useState<string>(initialSettings.apiKey || '')
   const [systemPrompt, setSystemPrompt] = useState<string>(
-    initialSettings.systemPrompt || 'You are LuxVM, a helpful, precise, and direct AI desktop assistant.'
+    initialSettings.systemPrompt || DEFAULT_SYSTEM_PROMPT
   )
   const [models, setModels] = useState<ModelConfig>({
     ...DEFAULT_MODELS,
@@ -433,6 +484,7 @@ export default function App() {
         ...(systemPrompt.trim() ? [{ role: 'system' as const, content: systemPrompt.trim() }] : []),
         ...updatedMessages
           .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .slice(-40)
           .map((m) => ({ role: m.role, content: m.content })),
       ]
 
@@ -447,10 +499,10 @@ export default function App() {
       })
 
       const rawText = await res.text()
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${rawText.slice(0, 220)}`)
+      if (!res.ok) throw new Error(getOpenRouterError(rawText, res.status))
 
       const data = JSON.parse(rawText)
-      const reply = data?.choices?.[0]?.message?.content || 'Empty response from OpenRouter.'
+      const reply = extractOpenRouterText(data, 'The model returned an empty response. Please try again.')
 
       setSessions((prev) =>
         prev.map((s) =>
@@ -482,7 +534,7 @@ export default function App() {
                   {
                     id: String(Date.now() + 1),
                     role: 'system',
-                    content: `Error: ${err?.name === 'AbortError' ? 'Timed out after 45s' : err?.message}`,
+                    content: `Error: ${err?.name === 'AbortError' ? 'The request timed out after 45 seconds. Please try again.' : err?.message}`,
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                   },
                 ],
@@ -539,7 +591,7 @@ export default function App() {
     try {
       if (!apiKey.trim()) throw new Error('Please paste your OpenRouter API key in  Settings.')
 
-      const voiceSystem = `${systemPrompt.trim()} Respond conversationally, concisely, and naturally as a spoken voice assistant without markdown formatting or code blocks unless asked.`
+      const voiceSystem = `${systemPrompt.trim() || DEFAULT_SYSTEM_PROMPT}\n\nVoice mode: Speak naturally and conversationally. Keep spoken replies clear and reasonably concise. Avoid markdown, tables, and code blocks unless the user asks for them. If a task needs several steps, guide the user one step at a time.`
 
       const res = await fetch(OPENROUTER_CHAT_URL, {
         method: 'POST',
@@ -557,10 +609,10 @@ export default function App() {
       })
 
       const rawText = await res.text()
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${rawText.slice(0, 200)}`)
+      if (!res.ok) throw new Error(getOpenRouterError(rawText, res.status))
 
       const data = JSON.parse(rawText)
-      const reply = data?.choices?.[0]?.message?.content || 'I did not catch a response.'
+      const reply = extractOpenRouterText(data, 'I did not receive a readable response. Please try again.')
 
       setVoiceHistory((prev) => [
         ...prev,
@@ -579,7 +631,7 @@ export default function App() {
         {
           id: String(Date.now() + 1),
           role: 'system',
-          content: `Voice Error: ${err?.message}`,
+          content: `Voice Error: ${err?.name === 'AbortError' ? 'The request timed out. Please try again.' : err?.message}`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ])
@@ -646,7 +698,7 @@ export default function App() {
           messages: [
             {
               role: 'system',
-              content: `You are LuxVM Codex, an elite software engineer. Write clean, complete, production-ready ${codexLang} code. Output ONLY the code itself without markdown backticks or conversational filler unless briefly needed inside code comments.`,
+              content: `You are LuxVM Codex, a senior software engineer. Build a correct, maintainable solution in ${codexLang}. Follow the user's requirements closely and preserve any supplied interfaces or constraints. Prefer simple, readable code; handle relevant edge cases; validate untrusted input; avoid insecure defaults and unnecessary dependencies. Include helpful comments only where they add value. If the request is ambiguous but still actionable, make a reasonable assumption. If a critical detail is missing, ask one concise question instead of inventing it. Output the complete code only, without markdown fences or conversational preamble.`,
             },
             { role: 'user', content: codexPrompt.trim() },
           ],
@@ -654,14 +706,14 @@ export default function App() {
       })
 
       const rawText = await res.text()
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${rawText.slice(0, 200)}`)
+      if (!res.ok) throw new Error(getOpenRouterError(rawText, res.status))
 
       const data = JSON.parse(rawText)
-      let code: string = data?.choices?.[0]?.message?.content || '// No code generated.'
+      let code: string = extractOpenRouterText(data, '// The model returned no code. Please try again.')
       code = code.replace(/^```[\w-]*\n?/i, '').replace(/\n?```$/i, '')
       setCodexOutput(code)
     } catch (err: any) {
-      setCodexOutput(`// Generation Error:\n// ${err?.message}`)
+      setCodexOutput(`// Generation Error:\n// ${err?.name === 'AbortError' ? 'The request timed out. Please try again.' : err?.message}`)
     } finally {
       setIsCodexLoading(false)
     }
@@ -773,7 +825,7 @@ export default function App() {
                 {
                   role: 'system',
                   content:
-                    'You are a chess grandmaster playing Black. Reply ONLY with a single legal UCI move (e.g. e7e5, g8f6) from the provided legal moves list. Do not include any other words or punctuation.',
+                    'You are a strong chess engine assistant playing Black. Choose one move only from the supplied legal-move list. Evaluate king safety, checks, captures, material, development, and immediate threats. Never invent a move. Return exactly one UCI move (for example e7e5), with no explanation or punctuation.',
                 },
                 {
                   role: 'user',
@@ -785,9 +837,9 @@ export default function App() {
 
           if (res.ok) {
             const data = await res.json()
-            const rawReply: string = data?.choices?.[0]?.message?.content || ''
-            const matched = blackLegalMoves.find((m) => rawReply.toLowerCase().includes(m))
-            if (matched) chosenUci = matched
+            const rawReply = extractOpenRouterText(data, '').toLowerCase().trim()
+            const candidate = rawReply.match(/\b[a-h][1-8][a-h][1-8][qrbn]?\b/)?.[0]
+            if (candidate && blackLegalMoves.includes(candidate)) chosenUci = candidate
           }
         }
 
@@ -853,7 +905,7 @@ export default function App() {
 
       const rawText = await res.text()
       if (!res.ok) {
-        throw new Error(`OpenRouter Image HTTP ${res.status}: ${rawText.slice(0, 240)}`)
+        throw new Error(getOpenRouterError(rawText, res.status))
       }
 
       const data = JSON.parse(rawText)
@@ -1122,7 +1174,7 @@ export default function App() {
                 style={styles.chatInput}
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Message Nemotron 3.5 Lightning..."
+                placeholder={`Message ${models.chat}...`}
                 disabled={isChatLoading}
               />
               <button type="submit" style={styles.sendBtn} disabled={isChatLoading || !chatInput.trim()}>
