@@ -381,12 +381,18 @@ function getPseudoLegalMoves(board: Board, r: number, c: number, history: string
       }
     }
     if (white && r === 7 && c === 4) {
-      if (!board[7][5] && !board[7][6] && board[7][7] === 'R') moves.push([7, 6])
-      if (!board[7][3] && !board[7][2] && !board[7][1] && board[7][0] === 'R') moves.push([7, 2])
+      const kingMoved = history.some((move) => move.slice(0, 2) === 'e1')
+      const kingRookMoved = history.some((move) => move.slice(0, 2) === 'h1' || move.slice(2, 4) === 'h1')
+      const queenRookMoved = history.some((move) => move.slice(0, 2) === 'a1' || move.slice(2, 4) === 'a1')
+      if (!kingMoved && !kingRookMoved && !board[7][5] && !board[7][6] && board[7][7] === 'R') moves.push([7, 6])
+      if (!kingMoved && !queenRookMoved && !board[7][3] && !board[7][2] && !board[7][1] && board[7][0] === 'R') moves.push([7, 2])
     }
     if (!white && r === 0 && c === 4) {
-      if (!board[0][5] && !board[0][6] && board[0][7] === 'r') moves.push([0, 6])
-      if (!board[0][3] && !board[0][2] && !board[0][1] && board[0][0] === 'r') moves.push([0, 2])
+      const kingMoved = history.some((move) => move.slice(0, 2) === 'e8')
+      const kingRookMoved = history.some((move) => move.slice(0, 2) === 'h8' || move.slice(2, 4) === 'h8')
+      const queenRookMoved = history.some((move) => move.slice(0, 2) === 'a8' || move.slice(2, 4) === 'a8')
+      if (!kingMoved && !kingRookMoved && !board[0][5] && !board[0][6] && board[0][7] === 'r') moves.push([0, 6])
+      if (!kingMoved && !queenRookMoved && !board[0][3] && !board[0][2] && !board[0][1] && board[0][0] === 'r') moves.push([0, 2])
     }
   } else {
     const dirs: [number, number][] = []
@@ -475,6 +481,14 @@ function getAllLegalMoves(board: Board, whiteTurn: boolean, history: string[] = 
       if (whiteTurn ? isWhitePiece(p) : isBlackPiece(p)) {
         const dests = getPseudoLegalMoves(board, r, c, history)
         for (const [nr, nc] of dests) {
+          const movingPiece = board[r][c]
+          const isCastling = movingPiece?.toUpperCase() === 'K' && Math.abs(nc - c) === 2
+          if (isCastling) {
+            if (isKingInCheck(board, whiteTurn)) continue
+            const transitBoard = applyRawMove(board, r, c, r, (c + nc) / 2)
+            if (isKingInCheck(transitBoard, whiteTurn)) continue
+          }
+
           const testBoard = applyRawMove(board, r, c, nr, nc)
           if (!isKingInCheck(testBoard, whiteTurn)) {
             legalUcis.push(coordsToUci(r, c, nr, nc))
