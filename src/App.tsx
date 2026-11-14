@@ -1114,8 +1114,8 @@ export default function App() {
         } else {
           setChessStatus(`Stockfish played ${chosenUci}. Your turn (White).`)
         }
-      } catch {
-        setChessStatus('Stockfish error: check the engine files and restart the game.')
+      } catch (error: any) {
+        setChessStatus(error?.message || 'Stockfish could not complete the move. Restart the game and try again.')
       } finally {
         setIsChessThinking(false)
       }
