@@ -129,10 +129,6 @@ function safeSetStorage(key: string, value: unknown): void {
 
 type ResponseTier = 'quick' | 'standard' | 'deep'
 
-// LuxVM does not impose a small output ceiling on demanding questions.
-// The selected model/provider still controls its actual context and output limits.
-const DEEP_RESPONSE_TOKEN_CEILING = 200000
-
 function isMathPrompt(prompt: string): boolean {
   return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed)\b|\d\s*(?:\^|\*\*|×|÷|\/|\+|-)\s*\d/i.test(prompt)
 }
@@ -146,10 +142,6 @@ function classifyResponseTier(prompt: string): ResponseTier {
   if (/^(what is|what's|whats|who is|when did|where is|define|how many|how much)\b/.test(value) && value.length < 140) return 'quick'
   if (value.length < 90 && !/[;{}]/.test(value) && !isMathPrompt(value)) return 'quick'
   return 'standard'
-}
-
-function getResponseBudget(prompt: string): number {
-  return classifyResponseTier(prompt) === 'deep' ? DEEP_RESPONSE_TOKEN_CEILING : 2048
 }
 
 function getCalculatorContext(prompt: string): string {
@@ -262,7 +254,23 @@ function uciToCoords(uci: string): { r1: number; c1: number; r2: number; c2: num
   return { r1, c1, r2, c2, promo: clean[4] }
 }
 
-function boardToFen(board: Board, turn: 'w' | 'b'): string {
+function boardToFen(board: Board, turn: 'w' | 'b', history: string[] = []): string {
+  let castling = 'KQkq'
+  let enPassant = '-'
+  for (const move of history) {
+    const from = move.slice(0, 2)
+    const to = move.slice(2, 4)
+    if (from === 'e1') castling = castling.replace(/[KQ]/g, '')
+    if (from === 'e8') castling = castling.replace(/[kq]/g, '')
+    if (from === 'h1' || to === 'h1') castling = castling.replace('K', '')
+    if (from === 'a1' || to === 'a1') castling = castling.replace('Q', '')
+    if (from === 'h8' || to === 'h8') castling = castling.replace('k', '')
+    if (from === 'a8' || to === 'a8') castling = castling.replace('q', '')
+    if (/^[a-h][27][a-h][45]$/.test(move) && Math.abs(Number(from[1]) - Number(to[1])) === 2) {
+      enPassant = from[0] + (Number(from[1]) + Number(to[1])) / 2
+    } else enPassant = '-'
+  }
+  if (!castling) castling = '-'
   const rows = board.map((row) => {
     let empty = 0
     let str = ''
@@ -280,7 +288,7 @@ function boardToFen(board: Board, turn: 'w' | 'b'): string {
     if (empty > 0) str += empty
     return str
   })
-  return `${rows.join('/')} ${turn} KQkq - 0 1`
+  return `${rows.join('/')} ${turn} ${castling} ${enPassant} 0 1`
 }
 
 function getPseudoLegalMoves(board: Board, r: number, c: number): [number, number][] {
@@ -486,7 +494,6 @@ export default function App() {
         body: JSON.stringify({
           model: models.chat.trim(),
           messages: [{ role: 'user', content: 'Reply with exactly: LuxVM connection successful.' }],
-          max_tokens: 64,
         }),
       })
       const raw = await response.text()
@@ -629,7 +636,6 @@ export default function App() {
         { role: 'system' as const, content: mathQuestion ? 'Mathematics mode: solve accurately, verify intermediate calculations, check units and edge cases, and distinguish exact answers from numerical approximations. Use concise working for routine problems and a clear rigorous derivation for difficult ones. Never invent a calculator result.' : responseTier === 'quick' ? 'This is a straightforward request. Answer accurately and directly in the fewest useful words. Do not over-explain.' : responseTier === 'deep' ? 'This is a demanding request. Take the time needed to reason carefully, verify steps, and explain the important details.' : 'Use a balanced level of detail appropriate to the request.' },
         ...updatedMessages
           .filter((m) => m.role === 'user' || m.role === 'assistant')
-          .slice(-40)
           .map((m) => ({ role: m.role, content: m.content })),
       ]
 
@@ -641,7 +647,6 @@ export default function App() {
         body: JSON.stringify({
           model: mathQuestion && models.math.trim() ? models.math.trim() : models.chat,
           messages: outboundMessages,
-          max_completion_tokens: getResponseBudget(trimmed),
           ...(mathQuestion && responseTier === 'deep' ? { reasoning: { effort: 'high', exclude: true } } : {}),
         }),
         signal: controller.signal,
@@ -751,7 +756,6 @@ export default function App() {
             { role: 'system', content: voiceSystem },
             ...nextHist
               .filter((m) => m.role === 'user' || m.role === 'assistant')
-              .slice(-10)
               .map((m) => ({ role: m.role, content: m.content })),
           ],
         }),
@@ -970,6 +974,56 @@ export default function App() {
   const [moveHistory, setMoveHistory] = useState<string[]>([])
   const [chessStatus, setChessStatus] = useState('Your turn (White). Click a piece to move.')
   const [isChessThinking, setIsChessThinking] = useState(false)
+  const stockfishWorkerRef = useRef<Worker | null>(null)
+  const stockfishReadyRef = useRef(false)
+
+  useEffect(() => () => {
+    stockfishWorkerRef.current?.terminate()
+    stockfishWorkerRef.current = null
+    stockfishReadyRef.current = false
+  }, [])
+
+  const chooseStockfishMove = (fen: string): Promise<string> => new Promise((resolve, reject) => {
+    let worker = stockfishWorkerRef.current
+    if (!worker) {
+      worker = new Worker(new URL('stockfish/stockfish-19-lite-single.js', window.location.href))
+      stockfishWorkerRef.current = worker
+      stockfishReadyRef.current = false
+    }
+    let finished = false
+    const finish = (error?: Error, move?: string) => {
+      if (finished) return
+      finished = true
+      clearTimeout(timeout)
+      worker!.removeEventListener('message', onMessage)
+      if (error) reject(error)
+      else if (move && /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move)) resolve(move)
+      else reject(new Error('Stockfish did not return a valid move.'))
+    }
+    const onMessage = (event: MessageEvent) => {
+      const line = String(event.data || '').trim()
+      if (line === 'uciok') {
+        worker!.postMessage('setoption name Threads value 1')
+        worker!.postMessage('setoption name Hash value 128')
+        worker!.postMessage('isready')
+      } else if (line === 'readyok') {
+        stockfishReadyRef.current = true
+        worker!.postMessage('position fen ' + fen)
+        worker!.postMessage('go movetime 1200')
+      } else if (line.startsWith('bestmove ')) {
+        finish(undefined, line.split(/\s+/)[1])
+      }
+    }
+    const timeout = window.setTimeout(() => finish(new Error('The local chess engine took too long to respond.')), 30000)
+    worker!.addEventListener('message', onMessage)
+    worker!.addEventListener('error', () => finish(new Error('Could not start the local Stockfish engine.')), { once: true })
+    if (stockfishReadyRef.current) {
+      worker!.postMessage('position fen ' + fen)
+      worker!.postMessage('go movetime 1200')
+    } else {
+      worker!.postMessage('uci')
+    }
+  })
 
   const resetChess = () => {
     setBoard(createInitialBoard())
@@ -1028,39 +1082,12 @@ export default function App() {
       }
 
       setIsChessThinking(true)
-      setChessStatus('LuxVM Chess Bot is calculating...')
+      setChessStatus('Stockfish is calculating locally...')
 
       try {
-        let chosenUci = blackLegalMoves[Math.floor(Math.random() * blackLegalMoves.length)]
-
-        if (apiKey.trim()) {
-          const fen = boardToFen(afterPlayerBoard, 'b')
-          const res = await fetch(OPENROUTER_CHAT_URL, {
-            method: 'POST',
-            headers: openRouterHeaders(),
-            body: JSON.stringify({
-              model: models.chess,
-              messages: [
-                {
-                  role: 'system',
-                  content:
-                    'You are a strong chess engine assistant playing Black. Choose one move only from the supplied legal-move list. Evaluate king safety, checks, captures, material, development, and immediate threats. Never invent a move. Return exactly one UCI move (for example e7e5), with no explanation or punctuation.',
-                },
-                {
-                  role: 'user',
-                  content: `Current FEN: ${fen}\nMove history: ${nextHistory.join(' ')}\nLegal moves for Black: ${blackLegalMoves.join(', ')}\nChoose the strongest move from the legal moves list:`,
-                },
-              ],
-            }),
-          })
-
-          if (res.ok) {
-            const data = await res.json()
-            const rawReply = extractOpenRouterText(data, '').toLowerCase().trim()
-            const candidate = rawReply.match(/\b[a-h][1-8][a-h][1-8][qrbn]?\b/)?.[0]
-            if (candidate && blackLegalMoves.includes(candidate)) chosenUci = candidate
-          }
-        }
+        const fen = boardToFen(afterPlayerBoard, 'b', nextHistory)
+        const chosenUci = await chooseStockfishMove(fen)
+        if (!blackLegalMoves.includes(chosenUci)) throw new Error('Stockfish returned a move outside the legal move list.')
 
         const aiParsed = uciToCoords(chosenUci)!
         const afterAiBoard = applyRawMove(
@@ -1083,12 +1110,12 @@ export default function App() {
               : 'Stalemate! Draw.'
           )
         } else if (isKingInCheck(afterAiBoard, true)) {
-          setChessStatus(`AI played ${chosenUci}. Check! Your turn.`)
+          setChessStatus(`Stockfish played ${chosenUci}. Check! Your turn.`)
         } else {
-          setChessStatus(`AI played ${chosenUci}. Your turn (White).`)
+          setChessStatus(`Stockfish played ${chosenUci}. Your turn (White).`)
         }
       } catch {
-        setChessStatus('AI move error. Reset or try again.')
+        setChessStatus('Stockfish error: check the engine files and restart the game.')
       } finally {
         setIsChessThinking(false)
       }
