@@ -489,8 +489,11 @@ export default function App() {
       const raw = await response.text()
       if (!response.ok) throw new Error(getOpenRouterError(raw, response.status))
       const data = JSON.parse(raw)
-      const text = extractOpenRouterText(data, '')
-      if (!text) throw new Error('OpenRouter accepted the request but returned no visible text. Check the model response details.')
+      const testContent = data?.choices?.[0]?.message?.content
+      const hasVisibleText = typeof testContent === 'string'
+        ? Boolean(testContent.trim())
+        : Array.isArray(testContent) && testContent.some((part: any) => part?.type === 'text' && typeof part.text === 'string' && part.text.trim())
+      if (!hasVisibleText) throw new Error(extractOpenRouterText(data, 'OpenRouter accepted the request but returned no visible text.'))
       setApiStatus(`Connection successful — ${models.chat.trim()} responded.`)
     } catch (error: any) {
       setApiStatus(error?.message || 'Connection test failed.')
