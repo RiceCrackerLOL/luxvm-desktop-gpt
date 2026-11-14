@@ -16,22 +16,8 @@ concurrency:
 
 jobs:
   package:
-    name: Build for ${{ matrix.platform }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows
-            os: windows-latest
-            artifact: release/*.exe
-          - platform: macos
-            os: macos-latest
-            artifact: release/*.dmg
-          - platform: linux
-            os: ubuntu-latest
-            artifact: release/*.AppImage
-
-    runs-on: ${{ matrix.os }}
+    name: Build Windows installer
+    runs-on: windows-latest
 
     steps:
       - name: Check out source
@@ -51,7 +37,7 @@ jobs:
       - name: Upload desktop installer
         uses: actions/upload-artifact@v4
         with:
-          name: LuxVM-${{ matrix.platform }}
+          name: LuxVM-Windows
           path: ${{ matrix.artifact }}
           if-no-files-found: error
           retention-days: 14
