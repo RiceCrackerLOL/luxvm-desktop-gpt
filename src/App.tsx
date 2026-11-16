@@ -1305,10 +1305,24 @@ export default function App() {
         const [ratioWidth, ratioHeight] = aspectRatio.split(':').map(Number)
         const width = ratioWidth >= ratioHeight ? 1024 : Math.max(256, Math.round(1024 * ratioWidth / ratioHeight))
         const height = ratioHeight >= ratioWidth ? 1024 : Math.max(256, Math.round(1024 * ratioHeight / ratioWidth))
+        let cloudflareReference = referenceImage?.url || null
+        if (cloudflareReference) {
+          const imageBlob = await (await fetch(cloudflareReference)).blob()
+          const bitmap = await createImageBitmap(imageBlob)
+          const scale = Math.min(1, 511 / Math.max(bitmap.width, bitmap.height))
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+          canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+          const context = canvas.getContext('2d')
+          if (!context) throw new Error('Could not prepare the reference image for FLUX.2.')
+          context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+          bitmap.close()
+          cloudflareReference = canvas.toDataURL('image/png')
+        }
         const response = await fetch(cloudflareWorkerUrl.trim(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cloudflareAccessKey.trim()}` },
-          body: JSON.stringify({ prompt, width, height, referenceImage: referenceImage?.url || null }),
+          body: JSON.stringify({ prompt, width, height, referenceImage: cloudflareReference }),
         })
         const raw = await response.text()
         if (!response.ok) {
