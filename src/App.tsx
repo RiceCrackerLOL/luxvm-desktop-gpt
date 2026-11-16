@@ -562,6 +562,9 @@ export default function App() {
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
     models: DEFAULT_MODELS,
     theme: 'light' as 'light' | 'dark',
+    imageProvider: 'openrouter' as 'openrouter' | 'cloudflare',
+    cloudflareWorkerUrl: '',
+    cloudflareAccessKey: '',
   })
 
   const [apiKey, setApiKey] = useState<string>(initialSettings.apiKey || '')
