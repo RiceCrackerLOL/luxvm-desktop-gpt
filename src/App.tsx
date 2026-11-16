@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react'
-import { evaluate as mathEvaluate, derivative as mathDerivative, simplify as mathSimplify } from 'mathjs'
+import { all, create, evaluate as mathEvaluate, derivative as mathDerivative, simplify as mathSimplify } from 'mathjs'
 
 declare global {
   interface Window {
@@ -138,10 +138,12 @@ function safeSetStorage(key: string, value: unknown): void {
 }
 
 
+const preciseMath = create(all, { number: 'BigNumber', precision: 64 })
+
 type ResponseTier = 'quick' | 'standard' | 'deep'
 
 function isMathPrompt(prompt: string): boolean {
-  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed|square root|sqrt|percent|percentage)\b|\d\s*(?:\^|\*\*|×|÷|\/|\+|-)\s*\d/i.test(prompt)
+  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed|square root|sqrt|percent|percentage|factorial|logarithm|log|ln|sine|cosine|tangent|permutation|combination|summation|series|vector)\b|\d\s*(?:\^|\*\*|×|÷|\/|\+|-|!)\s*\d?/i.test(prompt)
 }
 
 function classifyResponseTier(prompt: string): ResponseTier {
@@ -153,6 +155,32 @@ function classifyResponseTier(prompt: string): ResponseTier {
   if (/^(what is|what's|whats|who is|when did|where is|define|how many|how much)\b/.test(value) && value.length < 140) return 'quick'
   if (value.length < 90 && !/[;{}]/.test(value) && !isMathPrompt(value)) return 'quick'
   return 'standard'
+}
+
+function getDirectCalculatorAnswer(prompt: string): string | null {
+  const expression = prompt.trim()
+    .replace(/^(?:calculate|compute|evaluate|what is|what's|whats|how much is)\s+/i, '')
+    .replace(/[?=]+$/g, '')
+    .replace(/\b(plus|added to)\b/gi, '+')
+    .replace(/\b(minus|subtract)\b/gi, '-')
+    .replace(/\b(times|multiplied by)\b/gi, '*')
+    .replace(/\b(divided by|over)\b/gi, '/')
+    .replace(/\b(squared)\b/gi, '^2')
+    .replace(/\b(cubed)\b/gi, '^3')
+    .trim()
+  if (!expression || expression.length > 500 || !/[0-9]/.test(expression)) return null
+  if (!/^[0-9a-zA-Z_\s()+\-*/%^.,!]+$/.test(expression)) return null
+  if (/\b(?:import|createUnit|evaluate|parse|simplify|derivative|help|version|config|typed|reviver|replacer)\b/i.test(expression)) return null
+  try {
+    const result = preciseMath.evaluate(expression)
+    if (result && typeof result.toString === 'function' && (preciseMath.isBigNumber(result) || typeof result === 'number')) {
+      const output = result.toString()
+      if (output && output !== 'NaN' && output !== 'Infinity' && output !== '-Infinity') {
+        return output
+      }
+    }
+  } catch {}
+  return null
 }
 
 function getCalculatorContext(prompt: string): string {
@@ -702,6 +730,13 @@ export default function App() {
     )
     setChatInput('')
     setIsChatLoading(true)
+
+    const directCalculatorAnswer = getDirectCalculatorAnswer(trimmed)
+    if (directCalculatorAnswer !== null && isMathPrompt(trimmed)) {
+      setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: directCalculatorAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
+      setIsChatLoading(false)
+      return
+    }
 
     const controller = new AbortController()
     const responseTierForTimeout = classifyResponseTier(trimmed)
@@ -1269,7 +1304,7 @@ export default function App() {
   }
 
   const globalStyle = <style>{`
-    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
+    :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
     * { box-sizing: border-box; }
     body { margin: 0; background: #FFFFFF; color: #202124; }
     button, input, textarea, select { font: inherit; }
@@ -1278,6 +1313,7 @@ export default function App() {
     button:active { transform: translateY(1px); }
 
     [data-luxvm-theme="light"] { background: #FFFFFF !important; color: #202124 !important; color-scheme: light; }
+    [data-luxvm-theme="dark"] { color-scheme: dark; }
     [data-luxvm-theme="light"] [data-luxvm-sidebar] { background: #F7F7F8 !important; border-right: 1px solid #E5E7EB !important; }
     [data-luxvm-theme="light"] [data-luxvm-main] { background: #FFFFFF !important; }
     [data-luxvm-theme="light"] header { background: #FFFFFF !important; color: #202124 !important; border-bottom: 1px solid #ECEDEF !important; }
@@ -1308,6 +1344,49 @@ export default function App() {
     [data-luxvm-theme="dark"] [data-luxvm-message="user"] { background: #24272D !important; color: #F5F6F7 !important; border: 0 !important; }
     [data-luxvm-theme="dark"] [data-luxvm-message="assistant"] { background: transparent !important; color: #E8E9EB !important; border: 0 !important; }
     [data-luxvm-theme="dark"] [data-luxvm-chess] { color-scheme: light; }
+    [data-luxvm-theme="light"] *:not([data-luxvm-chess] *) { color: #202124 !important; }
+    [data-luxvm-theme="dark"] *:not([data-luxvm-chess] *) { color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] button { background: transparent !important; color: #E8E9EB !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] button[aria-current="page"],
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] button:focus-visible { background: #303640 !important; color: #FFFFFF !important; }
+    /* Keep every non-chess workspace readable in light mode. */
+    [data-luxvm-theme="light"] [data-luxvm-main] *:not([data-luxvm-chess] *) { color: #202124 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] input,
+    [data-luxvm-theme="light"] [data-luxvm-main] textarea,
+    [data-luxvm-theme="light"] [data-luxvm-main] select { background: #FFFFFF !important; color: #202124 !important; border-color: #DADDE2 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] button:not([data-theme-choice]) { color: #202124 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] pre { background: #F7F8FA !important; color: #202124 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] [data-luxvm-surface] { background: #F7F7F8 !important; border-color: #E5E7EB !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] button[data-theme-choice][aria-pressed="true"] { background: #E5E7EB !important; color: #202124 !important; border-color: #C9CDD3 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] button[data-theme-choice][aria-pressed="false"] { background: #FFFFFF !important; color: #202124 !important; border-color: #DADDE2 !important; }
+    /* Keep every non-chess workspace readable in dark mode. */
+    [data-luxvm-theme="dark"] [data-luxvm-main] *:not([data-luxvm-chess] *) { color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] input,
+    [data-luxvm-theme="dark"] [data-luxvm-main] textarea,
+    [data-luxvm-theme="dark"] [data-luxvm-main] select { background: #24272D !important; color: #F5F6F7 !important; border-color: #3B4149 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] button:not([data-theme-choice]) { color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] pre { background: #17191D !important; color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] [data-luxvm-surface] { background: #202328 !important; border-color: #343942 !important; }
+    /* Retain the existing layout; recolor only neutral inline surfaces in dark mode. */
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] { background: #1B1D21 !important; color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] [style*="background-color"] { background-color: #24272D !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] button[style*="background-color: rgb(198, 106, 74)"] { background-color: #C66A4A !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] :is(div,section,article,form,aside)[style*="background-color"]:not([data-luxvm-chess]):not([data-luxvm-chess] *) { background-color: #202328 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] :is(input,textarea,select) { background-color: #24272D !important; color: #F5F6F7 !important; border-color: #3B4149 !important; color-scheme: dark; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] pre, [data-luxvm-theme="dark"] [data-luxvm-main] code { background-color: #17191D !important; color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] button { color: #F5F6F7; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] button[style*="background-color: rgb(198, 106, 74)"],
+    [data-luxvm-theme="dark"] [data-luxvm-main] button[style*="background: rgb(198, 106, 74)"] { background: #C66A4A !important; color: #FFFFFF !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] [data-luxvm-chess],
+    [data-luxvm-theme="dark"] [data-luxvm-main] [data-luxvm-chess] * { color-scheme: light; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] button[data-theme-choice][aria-pressed="true"] { background: #3B4149 !important; color: #FFFFFF !important; border-color: #59616D !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] button[data-theme-choice][aria-pressed="false"] { background: transparent !important; color: #F5F6F7 !important; border-color: #3B4149 !important; }
+    [data-luxvm-theme] [data-luxvm-settings] { flex: 1 1 auto; min-height: 0; max-height: calc(100vh - 64px); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+    [data-luxvm-theme] [data-luxvm-settings] textarea[data-personality-prompt] { display: block; width: 100%; min-height: 220px; height: 32vh !important; max-height: 48vh; resize: vertical; line-height: 1.55; padding: 12px 14px !important; }
+    [data-luxvm-theme="light"] [data-luxvm-settings] textarea[data-personality-prompt] { background: #FFFFFF !important; color: #202124 !important; border: 1px solid #C9CDD3 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-settings] textarea[data-personality-prompt] { background: #24272D !important; color: #F5F6F7 !important; border: 1px solid #59616D !important; }
+    [data-luxvm-theme="light"] [data-luxvm-settings] label, [data-luxvm-theme="light"] [data-luxvm-settings] span { color: #41454B !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-settings] label, [data-luxvm-theme="dark"] [data-luxvm-settings] span { color: #C9CDD3 !important; }
   `}</style>
 
   return (
@@ -1478,7 +1557,7 @@ export default function App() {
             <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
               <label style={styles.label}>Permanent Personality / System Prompt</label>
               <textarea
-                style={{ ...styles.input, height: '60px', resize: 'vertical', fontFamily: 'inherit' }}
+                data-personality-prompt aria-label="Permanent Personality / System Prompt" style={{ ...styles.input, minHeight: '220px', height: '32vh', maxHeight: '48vh', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.55, padding: '12px 14px' }}
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
               />
@@ -1566,7 +1645,7 @@ export default function App() {
 
         {activeTab === 'voice' && (
           <>
-            <div style={styles.voiceTopBar}>
+            <div data-luxvm-surface style={styles.voiceTopBar}>
               <button
                 type="button"
                 onClick={toggleMicrophone}
@@ -1654,7 +1733,7 @@ export default function App() {
 
         {activeTab === 'codex' && (
           <div style={styles.codexContainer}>
-            <form onSubmit={generateCode} style={styles.codexLeft}>
+            <form data-luxvm-surface onSubmit={generateCode} style={styles.codexLeft}>
               <label style={styles.label}>Target Language / Stack</label>
               <select
                 style={styles.input}
@@ -1687,7 +1766,7 @@ export default function App() {
             </form>
 
             <div style={styles.codexRight}>
-              <div style={styles.codexToolbar}>
+              <div data-luxvm-surface style={styles.codexToolbar}>
                 <span style={{ fontSize: '12px', color: '#777168' }}>{codexLang} Output</span>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button type="button" onClick={copyCodeToClipboard} style={styles.secondaryBtn}>
@@ -1782,7 +1861,7 @@ export default function App() {
 
         {activeTab === 'image' && (
           <div style={styles.imageContainer}>
-            <form onSubmit={generateImage} style={styles.imageControls}>
+            <form data-luxvm-surface onSubmit={generateImage} style={styles.imageControls}>
               <input
                 style={{ ...styles.chatInput, flex: 1 }}
                 value={imagePrompt}
@@ -1815,14 +1894,14 @@ export default function App() {
               </div>
             )}
 
-            <div style={styles.imageGallery}>
+            <div data-luxvm-surface style={styles.imageGallery}>
               {generatedImages.length === 0 && !isImageLoading && (
                 <div style={{ color: '#777168', textAlign: 'center', marginTop: '60px' }}>
                   Enter a prompt above to generate images using {models.image}
                 </div>
               )}
               {generatedImages.map((img) => (
-                <div key={img.id} style={styles.imageCard}>
+                <div key={img.id} data-luxvm-surface style={styles.imageCard}>
                   <img src={img.url} alt={img.prompt} style={styles.generatedImg} />
                   <div style={styles.imageCardFooter}>
                     <span style={{ fontSize: '12px', color: '#57534D', flex: 1 }}>{img.prompt}</span>
@@ -2041,7 +2120,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
   },
   settingsPanel: {
-    padding: '16px 20px',
+    flex: '1 1 auto',
+    minHeight: 0,
+    maxHeight: 'calc(100vh - 64px)',
+    overflowY: 'auto',
+    overscrollBehavior: 'contain',
+    padding: '18px 22px 24px',
     backgroundColor: '#F7F5F0',
     borderBottom: '1px solid #E5E1D8',
   },
