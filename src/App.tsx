@@ -1271,37 +1271,43 @@ export default function App() {
   const globalStyle = <style>{`
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
     * { box-sizing: border-box; }
-    [data-luxvm-theme="dark"] { background: #191A1D !important; color: #E8E9EB !important; color-scheme: dark; }
-    [data-luxvm-theme="dark"] [data-luxvm-sidebar] { background: #1B1D21 !important; border-right: 1px solid #2B2E34 !important; }
-    [data-luxvm-theme="dark"] [data-luxvm-main] { background: #191A1D !important; }
-    [data-luxvm-theme="dark"] header, [data-luxvm-theme="dark"] [data-luxvm-chat-area] { background: #191A1D !important; border: 0 !important; }
-    [data-luxvm-theme="dark"] [data-luxvm-chat-composer] { background: #202328 !important; border: 1px solid #373B43 !important; border-radius: 18px !important; }
-    [data-luxvm-theme="dark"] [data-luxvm-chat-composer] input { background: transparent !important; color: #F5F6F7 !important; border: 0 !important; }
-    [data-luxvm-theme="dark"] [data-luxvm-message="user"] { background: #24272D !important; color: #F5F6F7 !important; border: 0 !important; }
-    [data-luxvm-theme="dark"] [data-luxvm-message="assistant"] { background: transparent !important; color: #E8E9EB !important; border: 0 !important; }
-    [data-luxvm-theme="dark"] input, [data-luxvm-theme="dark"] textarea, [data-luxvm-theme="dark"] select, [data-luxvm-theme="dark"] pre { background: #202328 !important; color: #F5F6F7 !important; border-color: #3B4149 !important; }
-    [data-luxvm-theme="dark"] *:not([data-luxvm-chess]):not([data-luxvm-chess] *) { color: #E8E9EB !important; }
-    [data-luxvm-theme="dark"] button { color: #FFFFFF !important; border-color: transparent !important; }
-    [data-luxvm-theme="dark"] button:not([data-theme-choice]) { background-color: #25282E !important; }
-    [data-luxvm-theme="dark"] [data-theme-choice][aria-pressed="true"] { background: #3B4652 !important; border-color: #9BAFC2 !important; }
-    [data-luxvm-theme="dark"] [data-luxvm-chess] { color-scheme: light; }
-    body { margin: 0; background: #F5F4EF; color: #292824; }
+    body { margin: 0; background: #FFFFFF; color: #202124; }
     button, input, textarea, select { font: inherit; }
     button { transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
     button:hover { filter: brightness(.97); }
     button:active { transform: translateY(1px); }
-    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #C66A4A; outline-offset: 2px; }
-    input, textarea, select { transition: border-color 160ms ease, box-shadow 160ms ease; }
-    input:focus, textarea:focus, select:focus { border-color: #C66A4A !important; box-shadow: 0 0 0 3px rgba(166,95,67,.12); }
-    ::selection { background: rgba(166,95,67,.18); }
-    ::-webkit-scrollbar { width: 9px; height: 9px; }
-    ::-webkit-scrollbar-thumb { background: #D8D2C7; border: 2px solid #F5F4EF; border-radius: 20px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    [data-luxvm-sidebar][data-collapsed="true"] { width: 64px !important; min-width: 64px !important; }
-    [data-luxvm-sidebar][data-collapsed="true"] nav button { justify-content: center; padding: 11px 0 !important; }
-    [data-luxvm-sidebar][data-collapsed="true"] nav button span { margin: 0 !important; }
-    @media (max-width: 760px) { [data-luxvm-sidebar]:not([data-collapsed="true"]) { width: 220px !important; min-width: 220px !important; } }
-    @media (max-width: 560px) { [data-luxvm-sidebar]:not([data-collapsed="true"]) { width: 200px !important; min-width: 200px !important; } }
+
+    [data-luxvm-theme="light"] { background: #FFFFFF !important; color: #202124 !important; color-scheme: light; }
+    [data-luxvm-theme="light"] [data-luxvm-sidebar] { background: #F7F7F8 !important; border-right: 1px solid #E5E7EB !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] { background: #FFFFFF !important; }
+    [data-luxvm-theme="light"] header { background: #FFFFFF !important; color: #202124 !important; border-bottom: 1px solid #ECEDEF !important; }
+    [data-luxvm-theme="light"] [data-luxvm-settings] { background: #FFFFFF !important; color: #202124 !important; border-bottom: 1px solid #ECEDEF !important; }
+    [data-luxvm-theme="light"] [data-luxvm-settings] *:not([data-luxvm-chess]):not([data-luxvm-chess] *) { color: #202124 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-settings] h3 { color: #17191C !important; font-size: 20px !important; font-weight: 650 !important; letter-spacing: -0.025em !important; margin: 0 0 5px !important; }
+    [data-luxvm-theme="light"] [data-luxvm-settings] input,
+    [data-luxvm-theme="light"] [data-luxvm-settings] textarea,
+    [data-luxvm-theme="light"] [data-luxvm-settings] select { background: #FFFFFF !important; color: #202124 !important; border: 1px solid #DADDE2 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-chat-composer] { background: #FFFFFF !important; border: 1px solid #DADDE2 !important; border-radius: 18px !important; }
+    [data-luxvm-theme="light"] [data-luxvm-chat-composer] input { background: transparent !important; color: #202124 !important; border: 0 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-message="assistant"] { background: transparent !important; color: #202124 !important; border: 0 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-message="user"] { background: #F1F2F4 !important; color: #202124 !important; border: 0 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-chess] { color-scheme: light; }
+
+    [data-luxvm-theme="dark"] { background: #191A1D !important; color: #E8E9EB !important; color-scheme: dark; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] { background: #1B1D21 !important; border-right: 1px solid #2B2E34 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] { background: #191A1D !important; }
+    [data-luxvm-theme="dark"] header { background: #191A1D !important; color: #E8E9EB !important; border-bottom: 1px solid #2B2E34 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-settings] { background: #191A1D !important; color: #E8E9EB !important; border-bottom: 1px solid #2B2E34 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-settings] *:not([data-luxvm-chess]):not([data-luxvm-chess] *) { color: #E8E9EB !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-settings] h3 { color: #FFFFFF !important; font-size: 20px !important; font-weight: 650 !important; letter-spacing: -0.025em !important; margin: 0 0 5px !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-settings] input,
+    [data-luxvm-theme="dark"] [data-luxvm-settings] textarea,
+    [data-luxvm-theme="dark"] [data-luxvm-settings] select { background: #24272D !important; color: #F5F6F7 !important; border: 1px solid #3B4149 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-chat-composer] { background: #202328 !important; border: 1px solid #373B43 !important; border-radius: 18px !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-chat-composer] input { background: transparent !important; color: #F5F6F7 !important; border: 0 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-message="user"] { background: #24272D !important; color: #F5F6F7 !important; border: 0 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-message="assistant"] { background: transparent !important; color: #E8E9EB !important; border: 0 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-chess] { color-scheme: light; }
   `}</style>
 
   return (
@@ -1359,10 +1365,13 @@ export default function App() {
         </header>
 
         {showSettings && (
-          <div style={styles.settingsPanel}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '15px' }}>
-              OpenRouter API Key, Models & Personality Memory
+          <div data-luxvm-settings style={styles.settingsPanel}>
+            <h3 style={{ margin: '0 0 5px 0', fontSize: '20px', fontWeight: 650, letterSpacing: '-0.025em' }}>
+              Settings
             </h3>
+            <p style={{ margin: '0 0 18px', fontSize: '13px', color: '#777E87' }}>
+              Customize your LuxVM experience
+            </p>
             <div style={{ ...styles.fieldRow, marginBottom: '16px' }}>
               <label style={styles.label}>Appearance</label>
               <div role="group" aria-label="Color theme" style={{ display: 'flex', gap: '8px' }}>
