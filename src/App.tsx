@@ -531,6 +531,7 @@ export default function App() {
     apiKey: '',
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
     models: DEFAULT_MODELS,
+    theme: 'light' as 'light' | 'dark',
   })
 
   const [apiKey, setApiKey] = useState<string>(initialSettings.apiKey || '')
