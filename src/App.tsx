@@ -870,7 +870,6 @@ export default function App() {
       const outboundMessages = [
         ...(systemPrompt.trim() ? [{ role: 'system' as const, content: systemPrompt.trim() }] : []),
         ...(chatMemory ? [{ role: 'system' as const, content: 'Memory saved for this chat only:\n' + chatMemory }] : []),
-        ...(calculatorContext ? [{ role: 'system' as const, content: calculatorContext }] : []),
         { role: 'system' as const, content: mathQuestion ? 'Mathematics mode: solve accurately, verify intermediate calculations, check units and edge cases, and distinguish exact answers from numerical approximations. Use concise working for routine problems and a clear rigorous derivation for difficult ones. Never invent a calculator result.' : responseTier === 'quick' ? 'This is a straightforward request. Answer accurately and directly in the fewest useful words. Do not over-explain.' : responseTier === 'deep' ? 'This is a demanding request. Take the time needed to reason carefully, verify steps, and explain the important details.' : 'Use a balanced level of detail appropriate to the request.' },
         ...updatedMessages
           .filter((m) => m.role === 'user' || m.role === 'assistant')
