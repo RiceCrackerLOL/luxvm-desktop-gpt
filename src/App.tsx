@@ -731,7 +731,14 @@ export default function App() {
     setChatInput('')
     setIsChatLoading(true)
 
-    const directCalculatorAnswer = getDirectCalculatorAnswer(trimmed)\n    if (directCalculatorAnswer !== null && isMathPrompt(trimmed)) {\n      setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: directCalculatorAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))\n      setIsChatLoading(false)\n      return\n    }\n\n    const controller = new AbortController()
+    const directCalculatorAnswer = getDirectCalculatorAnswer(trimmed)
+    if (directCalculatorAnswer !== null && isMathPrompt(trimmed)) {
+      setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: directCalculatorAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
+      setIsChatLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
     const responseTierForTimeout = classifyResponseTier(trimmed)
     const requestTimeoutMs = responseTierForTimeout === 'deep' ? 10 * 60 * 1000 : 90 * 1000
     const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs)
@@ -1305,7 +1312,8 @@ export default function App() {
     button:hover { filter: brightness(.97); }
     button:active { transform: translateY(1px); }
 
-    [data-luxvm-theme="light"] { background: #FFFFFF !important; color: #202124 !important; color-scheme: light; }\n    [data-luxvm-theme="dark"] { color-scheme: dark; }
+    [data-luxvm-theme="light"] { background: #FFFFFF !important; color: #202124 !important; color-scheme: light; }
+    [data-luxvm-theme="dark"] { color-scheme: dark; }
     [data-luxvm-theme="light"] [data-luxvm-sidebar] { background: #F7F7F8 !important; border-right: 1px solid #E5E7EB !important; }
     [data-luxvm-theme="light"] [data-luxvm-main] { background: #FFFFFF !important; }
     [data-luxvm-theme="light"] header { background: #FFFFFF !important; color: #202124 !important; border-bottom: 1px solid #ECEDEF !important; }
