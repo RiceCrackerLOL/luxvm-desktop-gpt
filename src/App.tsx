@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react'
-import { evaluate as mathEvaluate, derivative as mathDerivative, simplify as mathSimplify } from 'mathjs'
+import { all, create, evaluate as mathEvaluate, derivative as mathDerivative, simplify as mathSimplify } from 'mathjs'
 
 declare global {
   interface Window {
@@ -138,6 +138,8 @@ function safeSetStorage(key: string, value: unknown): void {
 }
 
 
+const preciseMath = create(all, { number: 'BigNumber', precision: 64 })
+
 type ResponseTier = 'quick' | 'standard' | 'deep'
 
 function isMathPrompt(prompt: string): boolean {
@@ -153,6 +155,32 @@ function classifyResponseTier(prompt: string): ResponseTier {
   if (/^(what is|what's|whats|who is|when did|where is|define|how many|how much)\b/.test(value) && value.length < 140) return 'quick'
   if (value.length < 90 && !/[;{}]/.test(value) && !isMathPrompt(value)) return 'quick'
   return 'standard'
+}
+
+function getDirectCalculatorAnswer(prompt: string): string | null {
+  const expression = prompt.trim()
+    .replace(/^(?:calculate|compute|evaluate|what is|what's|whats|how much is)\\s+/i, '')
+    .replace(/[?=]+$/g, '')
+    .replace(/\\b(plus|added to)\\b/gi, '+')
+    .replace(/\\b(minus|subtract)\\b/gi, '-')
+    .replace(/\\b(times|multiplied by)\\b/gi, '*')
+    .replace(/\\b(divided by|over)\\b/gi, '/')
+    .replace(/\\b(squared)\\b/gi, '^2')
+    .replace(/\\b(cubed)\\b/gi, '^3')
+    .trim()
+  if (!expression || expression.length > 500 || !/[0-9]/.test(expression)) return null
+  if (!/^[0-9a-zA-Z_\\s()+\\-*/%^.,!]+$/.test(expression)) return null
+  if (/\\b(?:import|createUnit|evaluate|parse|simplify|derivative|help|version|config|typed|reviver|replacer)\\b/i.test(expression)) return null
+  try {
+    const result = preciseMath.evaluate(expression)
+    if (result && typeof result.toString === 'function' && (result.isBigNumber === true || typeof result === 'number')) {
+      const output = result.toString()
+      if (output && output !== 'NaN' && output !== 'Infinity' && output !== '-Infinity') {
+        return output
+      }
+    }
+  } catch {}
+  return null
 }
 
 function getCalculatorContext(prompt: string): string {
@@ -703,7 +731,7 @@ export default function App() {
     setChatInput('')
     setIsChatLoading(true)
 
-    const controller = new AbortController()
+    const directCalculatorAnswer = getDirectCalculatorAnswer(trimmed)\n    if (directCalculatorAnswer !== null && isMathPrompt(trimmed)) {\n      setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: directCalculatorAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))\n      setIsChatLoading(false)\n      return\n    }\n\n    const controller = new AbortController()
     const responseTierForTimeout = classifyResponseTier(trimmed)
     const requestTimeoutMs = responseTierForTimeout === 'deep' ? 10 * 60 * 1000 : 90 * 1000
     const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs)
@@ -1269,7 +1297,7 @@ export default function App() {
   }
 
   const globalStyle = <style>{`
-    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
+    :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
     * { box-sizing: border-box; }
     body { margin: 0; background: #FFFFFF; color: #202124; }
     button, input, textarea, select { font: inherit; }
@@ -1277,7 +1305,7 @@ export default function App() {
     button:hover { filter: brightness(.97); }
     button:active { transform: translateY(1px); }
 
-    [data-luxvm-theme="light"] { background: #FFFFFF !important; color: #202124 !important; color-scheme: light; }
+    [data-luxvm-theme="light"] { background: #FFFFFF !important; color: #202124 !important; color-scheme: light; }\n    [data-luxvm-theme="dark"] { color-scheme: dark; }
     [data-luxvm-theme="light"] [data-luxvm-sidebar] { background: #F7F7F8 !important; border-right: 1px solid #E5E7EB !important; }
     [data-luxvm-theme="light"] [data-luxvm-main] { background: #FFFFFF !important; }
     [data-luxvm-theme="light"] header { background: #FFFFFF !important; color: #202124 !important; border-bottom: 1px solid #ECEDEF !important; }
@@ -1331,6 +1359,18 @@ export default function App() {
     [data-luxvm-theme="dark"] [data-luxvm-main] button:not([data-theme-choice]) { color: #F5F6F7 !important; }
     [data-luxvm-theme="dark"] [data-luxvm-main] pre { background: #17191D !important; color: #F5F6F7 !important; }
     [data-luxvm-theme="dark"] [data-luxvm-main] [data-luxvm-surface] { background: #202328 !important; border-color: #343942 !important; }
+    /* Retain the existing layout; recolor only neutral inline surfaces in dark mode. */
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] { background: #1B1D21 !important; color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] [style*="background-color"] { background-color: #24272D !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] button[style*="background-color: rgb(198, 106, 74)"] { background-color: #C66A4A !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] :is(div,section,article,form,aside)[style*="background-color"]:not([data-luxvm-chess]):not([data-luxvm-chess] *) { background-color: #202328 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] :is(input,textarea,select) { background-color: #24272D !important; color: #F5F6F7 !important; border-color: #3B4149 !important; color-scheme: dark; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] pre, [data-luxvm-theme="dark"] [data-luxvm-main] code { background-color: #17191D !important; color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] button { color: #F5F6F7; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] button[style*="background-color: rgb(198, 106, 74)"],
+    [data-luxvm-theme="dark"] [data-luxvm-main] button[style*="background: rgb(198, 106, 74)"] { background: #C66A4A !important; color: #FFFFFF !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] [data-luxvm-chess],
+    [data-luxvm-theme="dark"] [data-luxvm-main] [data-luxvm-chess] * { color-scheme: light; }
     [data-luxvm-theme="dark"] [data-luxvm-main] button[data-theme-choice][aria-pressed="true"] { background: #3B4149 !important; color: #FFFFFF !important; border-color: #59616D !important; }
     [data-luxvm-theme="dark"] [data-luxvm-main] button[data-theme-choice][aria-pressed="false"] { background: transparent !important; color: #F5F6F7 !important; border-color: #3B4149 !important; }
     [data-luxvm-theme] [data-luxvm-settings] { flex: 1 1 auto; min-height: 0; max-height: calc(100vh - 64px); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
