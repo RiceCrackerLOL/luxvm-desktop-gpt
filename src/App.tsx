@@ -1308,6 +1308,32 @@ export default function App() {
     [data-luxvm-theme="dark"] [data-luxvm-message="user"] { background: #24272D !important; color: #F5F6F7 !important; border: 0 !important; }
     [data-luxvm-theme="dark"] [data-luxvm-message="assistant"] { background: transparent !important; color: #E8E9EB !important; border: 0 !important; }
     [data-luxvm-theme="dark"] [data-luxvm-chess] { color-scheme: light; }
+    /* Keep every non-chess workspace readable in light mode. */
+    [data-luxvm-theme="light"] [data-luxvm-main] *:not([data-luxvm-chess] *) { color: #202124 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] input,
+    [data-luxvm-theme="light"] [data-luxvm-main] textarea,
+    [data-luxvm-theme="light"] [data-luxvm-main] select { background: #FFFFFF !important; color: #202124 !important; border-color: #DADDE2 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] button:not([data-theme-choice]) { color: #202124 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] pre { background: #F7F8FA !important; color: #202124 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] [data-luxvm-surface] { background: #F7F7F8 !important; border-color: #E5E7EB !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] button[data-theme-choice][aria-pressed="true"] { background: #E5E7EB !important; color: #202124 !important; border-color: #C9CDD3 !important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] button[data-theme-choice][aria-pressed="false"] { background: #FFFFFF !important; color: #202124 !important; border-color: #DADDE2 !important; }
+    /* Keep every non-chess workspace readable in dark mode. */
+    [data-luxvm-theme="dark"] [data-luxvm-main] *:not([data-luxvm-chess] *) { color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] input,
+    [data-luxvm-theme="dark"] [data-luxvm-main] textarea,
+    [data-luxvm-theme="dark"] [data-luxvm-main] select { background: #24272D !important; color: #F5F6F7 !important; border-color: #3B4149 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] button:not([data-theme-choice]) { color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] pre { background: #17191D !important; color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] [data-luxvm-surface] { background: #202328 !important; border-color: #343942 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] button[data-theme-choice][aria-pressed="true"] { background: #3B4149 !important; color: #FFFFFF !important; border-color: #59616D !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] button[data-theme-choice][aria-pressed="false"] { background: transparent !important; color: #F5F6F7 !important; border-color: #3B4149 !important; }
+    [data-luxvm-theme] [data-luxvm-settings] { flex: 1 1 auto; min-height: 0; max-height: calc(100vh - 64px); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+    [data-luxvm-theme] [data-luxvm-settings] textarea[data-personality-prompt] { display: block; width: 100%; min-height: 220px; height: 32vh !important; max-height: 48vh; resize: vertical; line-height: 1.55; padding: 12px 14px !important; }
+    [data-luxvm-theme="light"] [data-luxvm-settings] textarea[data-personality-prompt] { background: #FFFFFF !important; color: #202124 !important; border: 1px solid #C9CDD3 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-settings] textarea[data-personality-prompt] { background: #24272D !important; color: #F5F6F7 !important; border: 1px solid #59616D !important; }
+    [data-luxvm-theme="light"] [data-luxvm-settings] label, [data-luxvm-theme="light"] [data-luxvm-settings] span { color: #41454B !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-settings] label, [data-luxvm-theme="dark"] [data-luxvm-settings] span { color: #C9CDD3 !important; }
   `}</style>
 
   return (
@@ -1478,7 +1504,7 @@ export default function App() {
             <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
               <label style={styles.label}>Permanent Personality / System Prompt</label>
               <textarea
-                style={{ ...styles.input, height: '60px', resize: 'vertical', fontFamily: 'inherit' }}
+                data-personality-prompt aria-label="Permanent Personality / System Prompt" style={{ ...styles.input, minHeight: '220px', height: '32vh', maxHeight: '48vh', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.55, padding: '12px 14px' }}
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
               />
@@ -1566,7 +1592,7 @@ export default function App() {
 
         {activeTab === 'voice' && (
           <>
-            <div style={styles.voiceTopBar}>
+            <div data-luxvm-surface style={styles.voiceTopBar}>
               <button
                 type="button"
                 onClick={toggleMicrophone}
@@ -1654,7 +1680,7 @@ export default function App() {
 
         {activeTab === 'codex' && (
           <div style={styles.codexContainer}>
-            <form onSubmit={generateCode} style={styles.codexLeft}>
+            <form data-luxvm-surface onSubmit={generateCode} style={styles.codexLeft}>
               <label style={styles.label}>Target Language / Stack</label>
               <select
                 style={styles.input}
@@ -1687,7 +1713,7 @@ export default function App() {
             </form>
 
             <div style={styles.codexRight}>
-              <div style={styles.codexToolbar}>
+              <div data-luxvm-surface style={styles.codexToolbar}>
                 <span style={{ fontSize: '12px', color: '#777168' }}>{codexLang} Output</span>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button type="button" onClick={copyCodeToClipboard} style={styles.secondaryBtn}>
@@ -2041,7 +2067,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
   },
   settingsPanel: {
-    padding: '16px 20px',
+    flex: '1 1 auto',
+    minHeight: 0,
+    maxHeight: 'calc(100vh - 64px)',
+    overflowY: 'auto',
+    overscrollBehavior: 'contain',
+    padding: '18px 22px 24px',
     backgroundColor: '#F7F5F0',
     borderBottom: '1px solid #E5E1D8',
   },
