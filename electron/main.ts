@@ -60,6 +60,7 @@ function createWindow() {
     mainWindow = new BrowserWindow({
       width: 1280,
       height: 820,
+      show: false,
       autoHideMenuBar: true,
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
@@ -69,28 +70,82 @@ function createWindow() {
       },
     })
 
+    const indexPath = path.join(app.getAppPath(), 'dist', 'index.html')
+    const hostedInterfaceUrl = 'https://ricecrackerlol.github.io/luxvm-releases/'
+    const legacyStorageKeys = ['luxvm_or_sessions_v2', 'luxvm_or_active_v2', 'luxvm_or_settings_v2']
+    const showWindow = () => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
+    }
+
     if (process.env.VITE_DEV_SERVER_URL) {
-      mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL).catch((err) => {
+      mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL).then(showWindow).catch((err) => {
         console.error('Failed to load Vite dev server URL:', err)
+        showWindow()
       })
     } else {
-      const indexPath = path.join(app.getAppPath(), 'dist', 'index.html')
-      if (!existsSync(indexPath)) {
-        const message = `The packaged interface file is missing. Expected: ${indexPath}`
-        console.error(message)
-        dialog.showErrorBox('Startup Error', message)
-        return
-      }
-      const hostedInterfaceUrl = 'https://ricecrackerlol.github.io/luxvm-releases/'
-      mainWindow.loadURL(hostedInterfaceUrl).catch((remoteError) => {
-        console.error('Could not load hosted LuxVM interface; using bundled fallback:', remoteError)
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.loadFile(indexPath).catch((localError) => {
-            console.error('Failed to load bundled production interface:', indexPath, localError)
-            dialog.showErrorBox('Startup Error', `Could not load the hosted or bundled LuxVM interface.\\n\\nLocal file: ${indexPath}\\n\\n${localError.message}`)
-          })
+      const loadBundledFallback = async (reason?: unknown) => {
+        if (!mainWindow || mainWindow.isDestroyed()) return
+        if (existsSync(indexPath)) {
+          try {
+            await mainWindow.loadFile(indexPath)
+            showWindow()
+            return
+          } catch (localError) {
+            console.error('Failed to load bundled LuxVM interface:', localError)
+          }
         }
-      })
+        console.error('No usable LuxVM interface could be loaded:', reason)
+        dialog.showErrorBox('Startup Error', 'LuxVM could not load its website or its bundled offline interface.')
+        showWindow()
+      }
+
+      const loadHostedInterface = async () => {
+        let legacyStorage: Record<string, string | null> = {}
+
+        // Read data saved by older desktop versions under the file:// origin.
+        // Keep it intact and copy it into the hosted origin only when that key is absent.
+        if (existsSync(indexPath)) {
+          try {
+            await mainWindow!.loadFile(indexPath)
+            legacyStorage = await mainWindow!.webContents.executeJavaScript(
+              `(() => {
+                const keys = ${JSON.stringify(legacyStorageKeys)}
+                return Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)]))
+              })()`
+            )
+          } catch (migrationReadError) {
+            console.warn('Could not read previous local LuxVM settings before migration:', migrationReadError)
+          }
+        }
+
+        try {
+          await mainWindow!.loadURL(hostedInterfaceUrl)
+          const hasLegacyData = Object.values(legacyStorage).some((value) => value !== null)
+          if (hasLegacyData) {
+            await mainWindow!.webContents.executeJavaScript(
+              `(() => {
+                const legacy = ${JSON.stringify(legacyStorage)}
+                for (const [key, value] of Object.entries(legacy)) {
+                  if (value !== null && localStorage.getItem(key) === null) {
+                    localStorage.setItem(key, value)
+                  }
+                }
+                return true
+              })()`
+            )
+            await new Promise<void>((resolve) => {
+              mainWindow!.webContents.once('did-finish-load', () => resolve())
+              mainWindow!.webContents.reload()
+            })
+          }
+          showWindow()
+        } catch (remoteError) {
+          console.error('Could not load hosted LuxVM interface; using bundled offline fallback:', remoteError)
+          await loadBundledFallback(remoteError)
+        }
+      }
+
+      void loadHostedInterface()
     }
 
     mainWindow.on('closed', () => {
