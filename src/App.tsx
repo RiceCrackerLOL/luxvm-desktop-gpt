@@ -183,6 +183,98 @@ function getDirectCalculatorAnswer(prompt: string): string | null {
   return null
 }
 
+
+const SAGEMATHCELL_SERVICE_URL = 'https://sagecell.sagemath.org/service'
+
+async function solveWithSageMathCell(
+  question: string,
+  apiKey: string,
+  model: string,
+  headers: (key?: string) => Record<string, string>,
+  signal: AbortSignal,
+): Promise<string> {
+  const codegenResponse = await fetch(OPENROUTER_CHAT_URL, {
+    method: 'POST',
+    headers: headers(apiKey),
+    signal,
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      max_tokens: 1800,
+      messages: [
+        {
+          role: 'system',
+          content: [
+            'You convert a user mathematical question into executable SageMath code for SageMathCell.',
+            'Return ONLY SageMath code. Do not use Markdown fences, prose, explanations, derivations, or solution steps.',
+            'The code must compute the correct result and print ONLY the final answer using print(...). Do not print intermediate values.',
+            'Use exact symbolic arithmetic whenever possible; use QQ, ZZ, SR, solve, limit, diff, integrate, matrix, factor, etc. as appropriate.',
+            'For numerical answers, use sufficient precision and label approximations clearly.',
+            'For word problems, define variables, encode the stated conditions, solve them, and print only the requested answer with units when applicable.',
+            'If the question is ambiguous or lacks necessary information, print a short statement identifying exactly what is missing.',
+            'Do not assume unstated values or silently choose among multiple valid solutions. If multiple solutions are requested, print the complete answer set.',
+            'Do not import modules. Do not access files, environment variables, networks, processes, or system resources.',
+            'Do not use open, exec, eval, compile, input, interact, while, or dunder attributes.',
+            'Avoid unbounded computation. Use SageMath built-ins and bounded calculations.',
+            'The final output must be suitable to show directly to the user without any explanation.',
+          ].join(' '),
+        },
+        {
+          role: 'user',
+          content: 'Convert this problem into SageMath code and calculate its final answer only:\\n\\n' + question,
+        },
+      ],
+    }),
+  })
+
+  const codegenText = await codegenResponse.text()
+  if (!codegenResponse.ok) throw new Error(getOpenRouterError(codegenText, codegenResponse.status))
+  const codegenData = JSON.parse(codegenText)
+  let sageCode = extractOpenRouterText(codegenData, 'The math model did not return SageMath code.')
+    .replace(/^\\x60{3}(?:sage|python)?\\s*/i, '')
+    .replace(/\\s*\\x60{3}$/, '')
+    .trim()
+
+  if (!sageCode || sageCode.length > 8000) {
+    throw new Error('The math model did not produce valid SageMath code. Please rephrase the problem.')
+  }
+  if (!/\\bprint\\s*\\(/.test(sageCode)) {
+    throw new Error('The math model did not provide a final-answer output. Please try again.')
+  }
+  if (/\\b(import|exec|eval|compile|open|input|interact|while)\\b|__|(?:os|sys|subprocess|socket|requests|urllib|pathlib)\\s*\\./i.test(sageCode)) {
+    throw new Error('The generated calculation was blocked by LuxVM safety checks. Please rephrase the problem.')
+  }
+
+  const calculationResponse = await fetch(SAGEMATHCELL_SERVICE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    credentials: 'omit',
+    signal,
+    body: JSON.stringify({ code: sageCode }),
+  })
+  const calculationText = await calculationResponse.text()
+  if (!calculationResponse.ok) {
+    throw new Error('SageMathCell could not calculate this problem (HTTP ' + calculationResponse.status + '). Please try again shortly.')
+  }
+
+  let calculation: any
+  try {
+    calculation = JSON.parse(calculationText)
+  } catch {
+    throw new Error('SageMathCell returned an unreadable result. Please try again.')
+  }
+  if (calculation?.success !== true) {
+    const detail = String(calculation?.stderr || calculation?.error || '').trim()
+    throw new Error(detail
+      ? 'SageMathCell could not solve this problem: ' + detail.slice(0, 500)
+      : 'SageMathCell could not solve this problem. Please check the question and try again.')
+  }
+
+  const answer = String(calculation?.stdout || '').trim()
+  if (!answer) throw new Error('SageMathCell completed the calculation but returned no final answer. Please try again.')
+  return answer
+}
+
 function getCalculatorContext(prompt: string): string {
   const trimmed = prompt.trim()
   const derivativeMatch = trimmed.match(/(?:differentiate|derivative of)\s+(.+?)(?:\s+(?:with respect to|w\.r\.t\.?)\s+([a-z]))?[?.!]*$/i)
@@ -731,13 +823,6 @@ export default function App() {
     setChatInput('')
     setIsChatLoading(true)
 
-    const directCalculatorAnswer = getDirectCalculatorAnswer(trimmed)
-    if (directCalculatorAnswer !== null && isMathPrompt(trimmed)) {
-      setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: directCalculatorAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
-      setIsChatLoading(false)
-      return
-    }
-
     const controller = new AbortController()
     const responseTierForTimeout = classifyResponseTier(trimmed)
     const requestTimeoutMs = responseTierForTimeout === 'deep' ? 10 * 60 * 1000 : 90 * 1000
@@ -749,9 +834,39 @@ export default function App() {
       }
 
       const chatMemory = updateSessionMemory(currentSession.memory, updatedMessages)
-      const calculatorContext = getCalculatorContext(trimmed)
       const responseTier = classifyResponseTier(trimmed)
       const mathQuestion = isMathPrompt(trimmed)
+
+      if (mathQuestion) {
+        const finalAnswer = await solveWithSageMathCell(
+          trimmed,
+          apiKey.trim(),
+          models.math.trim() || models.chat.trim(),
+          openRouterHeaders,
+          controller.signal,
+        )
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === currentSession.id
+              ? {
+                  ...s,
+                  messages: [
+                    ...s.messages,
+                    {
+                      id: String(Date.now() + 1),
+                      role: 'assistant',
+                      content: finalAnswer,
+                      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    },
+                  ],
+                  updatedAt: Date.now(),
+                }
+              : s
+          )
+        )
+        return
+      }
+
       const outboundMessages = [
         ...(systemPrompt.trim() ? [{ role: 'system' as const, content: systemPrompt.trim() }] : []),
         ...(chatMemory ? [{ role: 'system' as const, content: 'Memory saved for this chat only:\n' + chatMemory }] : []),
