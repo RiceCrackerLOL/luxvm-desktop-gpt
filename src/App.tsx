@@ -1728,10 +1728,10 @@ export default function App() {
                         style={{
                           ...styles.chessSquare,
                           backgroundColor: isSelected
-                            ? '#A65F43'
+                            ? '#F6F669'
                             : isDark
-                            ? '#30312D'
-                            : '#9B988F',
+                            ? '#769656'
+                            : '#EEeed2',
                         }}
                       >
                         {isLegalDest && <div style={styles.legalDot} />}
@@ -1740,11 +1740,11 @@ export default function App() {
                             aria-label={`${isWhitePiece(cell) ? 'White' : 'Black'} ${cell.toUpperCase()}`}
                             style={{
                               ...styles.chessPiece,
-                              color: isWhitePiece(cell) ? '#FFFFFF' : '#171815',
-                              WebkitTextStroke: isWhitePiece(cell) ? '1.15px #252620' : '1.35px #F3EFE5',
+                              color: isWhitePiece(cell) ? '#FFFFFF' : '#262421',
+                              WebkitTextStroke: isWhitePiece(cell) ? '1.35px #30352B' : '1.15px #F5F0DF',
                               textShadow: isWhitePiece(cell)
-                                ? '0 1px 2px rgba(0,0,0,.7)'
-                                : '0 1px 2px rgba(255,255,255,.65)',
+                                ? '0 1px 2px rgba(0,0,0,.8)'
+                                : '0 1px 2px rgba(255,255,255,.75)',
                             }}
                           >
                             {PIECE_UNICODE[cell]}
@@ -2207,7 +2207,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'grid',
     gridTemplateColumns: 'repeat(8, 56px)',
     gridTemplateRows: 'repeat(8, 56px)',
-    border: '3px solid #30312D',
+    border: '3px solid #536B43',
     borderRadius: '6px',
     overflow: 'hidden',
   },
@@ -2234,10 +2234,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   legalDot: {
     position: 'absolute',
-    width: '14px',
-    height: '14px',
+    width: '15px',
+    height: '15px',
     borderRadius: '50%',
-    backgroundColor: 'rgba(34, 197, 94, 0.65)',
+    backgroundColor: 'rgba(28, 74, 28, 0.55)',
+    boxShadow: '0 0 0 2px rgba(245, 245, 220, 0.35)',
     pointerEvents: 'none',
   },
   chessSidebar: {
