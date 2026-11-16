@@ -141,7 +141,7 @@ function safeSetStorage(key: string, value: unknown): void {
 type ResponseTier = 'quick' | 'standard' | 'deep'
 
 function isMathPrompt(prompt: string): boolean {
-  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed)\b|\d\s*(?:\^|\*\*|×|÷|\/|\+|-)\s*\d/i.test(prompt)
+  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed|square root|sqrt|percent|percentage)\b|\d\s*(?:\^|\*\*|×|÷|\/|\+|-)\s*\d/i.test(prompt)
 }
 
 function classifyResponseTier(prompt: string): ResponseTier {
@@ -208,7 +208,7 @@ function getCalculatorContext(prompt: string): string {
     .replace(/\b(divided by|over)\b/g, '/')
     .replace(/\b(squared)\b/g, '^2')
     .replace(/\b(cubed)\b/g, '^3')
-    .replace(/\b(square root of)\s*/g, 'sqrt(')
+    .replace(/\bsquare root of\s*(\d+(?:\.\d+)?|\([^)]*\))/g, 'sqrt($1)')
   const candidate = verbal.replace(/[?=]+$/g, '').trim()
   if (!candidate || candidate.length > 500 || !/^[\d.a-z_\s()+\-*/%^,]+$/i.test(candidate)) return ''
   try {
