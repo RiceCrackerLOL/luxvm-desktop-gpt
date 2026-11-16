@@ -1298,6 +1298,8 @@ export default function App() {
     ::-webkit-scrollbar-thumb { background: #D8D2C7; border: 2px solid #F5F4EF; border-radius: 20px; }
     ::-webkit-scrollbar-track { background: transparent; }
     [data-luxvm-sidebar][data-collapsed="true"] { width: 64px !important; min-width: 64px !important; }
+    [data-luxvm-sidebar][data-collapsed="true"] nav button { justify-content: center; padding: 11px 0 !important; }
+    [data-luxvm-sidebar][data-collapsed="true"] nav button span { margin: 0 !important; }
     @media (max-width: 760px) { [data-luxvm-sidebar]:not([data-collapsed="true"]) { width: 220px !important; min-width: 220px !important; } }
     @media (max-width: 560px) { [data-luxvm-sidebar]:not([data-collapsed="true"]) { width: 200px !important; min-width: 200px !important; } }
   `}</style>
@@ -1311,7 +1313,8 @@ export default function App() {
           <button type="button" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={styles.sidebarToggle}>{sidebarCollapsed ? '›' : '‹'}</button>
         </div>
         <nav style={styles.navMenu}>
-          <button type="button" title="General Chat" aria-label="General Chat" onClick={() => setActiveTab('chat')} style={{ ...styles.navBtn, ...(activeTab === 'chat' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'New'}</button>
+          <button type="button" title="New Chat" aria-label="New Chat" onClick={createNewChat} style={styles.navBtn}><span style={styles.navIcon}>+</span>{!sidebarCollapsed && 'New'}</button>
+          <button type="button" title="General Chat" aria-label="General Chat" onClick={() => setActiveTab('chat')} style={{ ...styles.navBtn, ...(activeTab === 'chat' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'General Chat'}</button>
           <button type="button" title="Voice Assistant" aria-label="Voice Assistant" onClick={() => setActiveTab('voice')} style={{ ...styles.navBtn, ...(activeTab === 'voice' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>◷</span>{!sidebarCollapsed && 'Voice Assistant'}</button>
           <button type="button" title="Codex Studio" aria-label="Codex Studio" onClick={() => setActiveTab('codex')} style={{ ...styles.navBtn, ...(activeTab === 'codex' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Codex Studio'}</button>
           <button type="button" title="Chess Bot" aria-label="Chess Bot" onClick={() => setActiveTab('chess')} style={{ ...styles.navBtn, ...(activeTab === 'chess' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>♙</span>{!sidebarCollapsed && 'Chess Bot'}</button>
