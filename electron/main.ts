@@ -81,9 +81,15 @@ function createWindow() {
         dialog.showErrorBox('Startup Error', message)
         return
       }
-      mainWindow.loadFile(indexPath).catch((err) => {
-        console.error('Failed to load production index.html:', indexPath, err)
-        dialog.showErrorBox('Startup Error', `Could not load application interface from:\n${indexPath}`)
+      const hostedInterfaceUrl = 'https://ricecrackerlol.github.io/luxvm-releases/'
+      mainWindow.loadURL(hostedInterfaceUrl).catch((remoteError) => {
+        console.error('Could not load hosted LuxVM interface; using bundled fallback:', remoteError)
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.loadFile(indexPath).catch((localError) => {
+            console.error('Failed to load bundled production interface:', indexPath, localError)
+            dialog.showErrorBox('Startup Error', `Could not load the hosted or bundled LuxVM interface.\\n\\nLocal file: ${indexPath}\\n\\n${localError.message}`)
+          })
+        }
       })
     }
 
