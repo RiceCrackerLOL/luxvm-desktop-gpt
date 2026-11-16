@@ -186,6 +186,36 @@ function getDirectCalculatorAnswer(prompt: string): string | null {
 
 const SAGEMATHCELL_SERVICE_URL = 'https://sagecell.sagemath.org/service'
 
+function buildKeylessSageCode(question: string): string | null {
+  let q = question.trim().replace(/^\$+|\$+$/g, '').replace(/^\\\(|\\\)$/g, '').replace(/\\left|\\right/g, '').replace(/\\cdot/g, '*').replace(/\\times/g, '*').replace(/\\div/g, '/').replace(/\\pi/g, 'pi').replace(/\\sqrt\{([^{}]+)\}/g, 'sqrt($1)').replace(/\^\{([^{}]+)\}/g, '^($1)').replace(/[{}]/g, '').replace(/[?=]+$/g, '').trim()
+  let op = 'evaluate', variable = 'x'
+  const patterns: Array<[RegExp, string]> = [
+    [/^(?:differentiate|derivative of)\s+(.+?)(?:\s+(?:with respect to|w\.r\.t\.?)\s+([a-z]))?$/i, 'differentiate'],
+    [/^(?:integrate|integral of)\s+(.+?)(?:\s+with respect to\s+([a-z]))?$/i, 'integrate'],
+    [/^(?:factor|factorise|factorize)\s+(.+)$/i, 'factor'],
+    [/^simplify\s+(.+)$/i, 'simplify'],
+    [/^solve\s+(.+?)(?:\s+for\s+([a-z]))?$/i, 'solve'],
+    [/^(?:calculate|compute|evaluate|what is|what's|whats)\s+(.+)$/i, 'evaluate'],
+  ]
+  for (const [pattern, operation] of patterns) { const m = q.match(pattern); if (m) { op = operation; q = m[1].trim(); if (m[2]) variable = m[2].toLowerCase(); break } }
+  if (!q || q.length > 2000 || !/^[a-zA-Z0-9_+\-*/^().,!\s]+$/.test(q) || /\b(import|exec|eval|open|input|while|for|lambda|class|def|print|system|globals|locals)\b|__/.test(q)) return null
+  if (op === 'differentiate') return "var('" + variable + "'); print(diff(" + q + ', ' + variable + '))'
+  if (op === 'integrate') return "var('" + variable + "'); print(integrate(" + q + ', ' + variable + '))'
+  if (op === 'factor') return 'print(factor(' + q + '))'
+  if (op === 'simplify') return 'print((' + q + ').simplify_full())'
+  if (op === 'solve') return "var('" + variable + "'); print(solve(" + q + ', ' + variable + '))'
+  return 'print(' + q + ')'
+}
+
+async function executeSageMathCode(code: string, signal: AbortSignal): Promise<string> {
+  const response = await fetch(SAGEMATHCELL_SERVICE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, credentials: 'omit', signal, body: JSON.stringify({ code }) })
+  const raw = await response.text()
+  if (!response.ok) throw new Error('SageMathCell is unavailable (HTTP ' + response.status + '). Please try again.')
+  let result: any; try { result = JSON.parse(raw) } catch { throw new Error('SageMathCell returned an unreadable result.') }
+  if (result?.success !== true) { const detail = String(result?.stderr || result?.error || '').trim(); throw new Error(detail ? 'SageMathCell could not calculate this: ' + detail.slice(0, 400) : 'SageMathCell could not calculate this expression.') }
+  const answer = String(result?.stdout || '').trim(); if (!answer) throw new Error('SageMathCell returned no final answer.'); return answer
+}
+
 async function solveWithSageMathCell(
   question: string,
   apiKey: string,
@@ -829,14 +859,17 @@ export default function App() {
     const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs)
 
     try {
-      if (!apiKey.trim()) {
-        throw new Error('Missing OpenRouter API Key. Click  Settings in the top right to paste it.')
+      const mathQuestion = isMathPrompt(trimmed)
+      if (mathQuestion && !apiKey.trim()) {
+        const sageCode = buildKeylessSageCode(trimmed)
+        if (!sageCode) throw new Error('This maths question needs natural-language interpretation. Expressions, powers, derivatives, integrals, factoring and equations can be calculated without an API key. Add an API key for full word-problem interpretation.')
+        const finalAnswer = await executeSageMathCode(sageCode, controller.signal)
+        setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: finalAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
+        return
       }
-
+      if (!apiKey.trim()) throw new Error('Missing OpenRouter API Key. Click Settings in the top right to paste it.')
       const chatMemory = updateSessionMemory(currentSession.memory, updatedMessages)
       const responseTier = classifyResponseTier(trimmed)
-      const mathQuestion = isMathPrompt(trimmed)
-
       if (mathQuestion) {
         const finalAnswer = await solveWithSageMathCell(
           trimmed,
