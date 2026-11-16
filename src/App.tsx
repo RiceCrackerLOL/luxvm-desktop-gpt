@@ -541,6 +541,7 @@ export default function App() {
     ...DEFAULT_MODELS,
     ...(initialSettings.models || {}),
   })
+  const [theme, setTheme] = useState<'light' | 'dark'>(initialSettings.theme === 'dark' ? 'dark' : 'light')
 
   useEffect(() => {
     safeSetStorage(SETTINGS_KEY, {
@@ -548,8 +549,9 @@ export default function App() {
       systemPrompt: systemPrompt.trim(),
       models,
       githubRepo: githubRepo.trim(),
+      theme,
     })
-  }, [apiKey, systemPrompt, models, githubRepo])
+  }, [apiKey, systemPrompt, models, githubRepo, theme])
 
   const openRouterHeaders = (key = apiKey) => ({
     'Content-Type': 'application/json',
@@ -1265,8 +1267,23 @@ export default function App() {
   }
 
   const globalStyle = <style>{`
-    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
     * { box-sizing: border-box; }
+    [data-luxvm-theme="dark"] { background: #17191C !important; color: #F5F6F7 !important; color-scheme: dark; }
+    [data-luxvm-theme="dark"] aside,
+    [data-luxvm-theme="dark"] header,
+    [data-luxvm-theme="dark"] main,
+    [data-luxvm-theme="dark"] form,
+    [data-luxvm-theme="dark"] section,
+    [data-luxvm-theme="dark"] pre,
+    [data-luxvm-theme="dark"] input,
+    [data-luxvm-theme="dark"] textarea,
+    [data-luxvm-theme="dark"] select { background-color: #202328 !important; color: #F5F6F7 !important; border-color: #3B4149 !important; }
+    [data-luxvm-theme="dark"] div:not([data-luxvm-chess]):not([data-luxvm-chess] *) { color: #F5F6F7 !important; border-color: #3B4149 !important; }
+    [data-luxvm-theme="dark"] button { color: #FFFFFF !important; border-color: #414852 !important; }
+    [data-luxvm-theme="dark"] button:not([data-theme-choice]) { background-color: #343A42 !important; }
+    [data-luxvm-theme="dark"] [data-theme-choice][aria-pressed="true"] { background: #3B4652 !important; border-color: #9BAFC2 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-chess] { color-scheme: light; }
     body { margin: 0; background: #F5F4EF; color: #292824; }
     button, input, textarea, select { font: inherit; }
     button { transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
@@ -1284,7 +1301,7 @@ export default function App() {
   `}</style>
 
   return (
-    <div style={styles.appContainer}>
+    <div data-luxvm-theme={theme} style={styles.appContainer}>
       {globalStyle}
       <aside data-luxvm-sidebar style={styles.sidebar}>
         <div style={styles.sidebarBrand}>
@@ -1394,6 +1411,14 @@ export default function App() {
             <h3 style={{ margin: '0 0 10px 0', fontSize: '15px' }}>
               OpenRouter API Key, Models & Personality Memory
             </h3>
+            <div style={{ ...styles.fieldRow, marginBottom: '16px' }}>
+              <label style={styles.label}>Appearance</label>
+              <div role="group" aria-label="Color theme" style={{ display: 'flex', gap: '8px' }}>
+                <button type="button" data-theme-choice aria-pressed={theme === 'light'} onClick={() => setTheme('light')} style={{ ...styles.secondaryBtn, background: theme === 'light' ? '#E5E1D8' : 'transparent', border: '1px solid #D8D2C7' }}>Light mode</button>
+                <button type="button" data-theme-choice aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')} style={{ ...styles.secondaryBtn, background: theme === 'dark' ? '#343A42' : 'transparent', color: theme === 'dark' ? '#FFFFFF' : '#292824', border: '1px solid #D8D2C7' }}>Dark mode</button>
+              </div>
+              <span style={{ display: 'block', fontSize: '11px', color: '#777168', marginTop: '6px' }}>Text automatically switches to white in dark mode and black in light mode.</span>
+            </div>
 
             {window.luxvmUpdater && (
             <div style={{ ...styles.fieldRow, padding: '12px', border: '1px solid #D8D2C7', borderRadius: '8px', background: '#F0EEE8' }}>
@@ -1533,10 +1558,11 @@ export default function App() {
                       ...styles.bubble,
                       backgroundColor:
                         msg.role === 'user'
-                          ? '#292B27'
+                          ? (theme === 'dark' ? '#343A42' : '#292B27')
                           : msg.role === 'system'
-                          ? '#422B27'
+                          ? (theme === 'dark' ? '#4A2929' : '#422B27')
                           : 'transparent',
+                      color: msg.role === 'user' ? '#FFFFFF' : (theme === 'dark' ? '#F5F6F7' : '#292824'),
                     }}
                   >
                     <div style={styles.meta}>
