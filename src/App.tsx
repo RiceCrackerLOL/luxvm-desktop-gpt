@@ -1308,6 +1308,11 @@ export default function App() {
     [data-luxvm-theme="dark"] [data-luxvm-message="user"] { background: #24272D !important; color: #F5F6F7 !important; border: 0 !important; }
     [data-luxvm-theme="dark"] [data-luxvm-message="assistant"] { background: transparent !important; color: #E8E9EB !important; border: 0 !important; }
     [data-luxvm-theme="dark"] [data-luxvm-chess] { color-scheme: light; }
+    [data-luxvm-theme="light"] *:not([data-luxvm-chess] *) { color: #202124 !important; }
+    [data-luxvm-theme="dark"] *:not([data-luxvm-chess] *) { color: #F5F6F7 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] button { background: transparent !important; color: #E8E9EB !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] button[aria-current="page"],
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] button:focus-visible { background: #303640 !important; color: #FFFFFF !important; }
     /* Keep every non-chess workspace readable in light mode. */
     [data-luxvm-theme="light"] [data-luxvm-main] *:not([data-luxvm-chess] *) { color: #202124 !important; }
     [data-luxvm-theme="light"] [data-luxvm-main] input,
