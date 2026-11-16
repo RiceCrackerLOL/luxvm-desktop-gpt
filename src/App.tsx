@@ -143,13 +143,13 @@ const preciseMath = create(all, { number: 'BigNumber', precision: 64 })
 type ResponseTier = 'quick' | 'standard' | 'deep'
 
 function isMathPrompt(prompt: string): boolean {
-  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed|square root|sqrt|percent|percentage|factorial|logarithm|log|ln|sine|cosine|tangent|permutation|combination|summation|series|vector)\b|\d\s*(?:\^|\*\*|×|÷|\/|\+|-|!)\s*\d?/i.test(prompt)
+  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed|square root|sqrt|percent|percentage|factorial|logarithm|log|ln|sine|cosine|tangent|permutation|combination|summation|series|vector)\b|\d\s*(?:\^\s*\{[^}]+\}|\^|\*\*|×|÷|\/|\+|-|!)\s*\d?|[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼]/i.test(prompt)
 }
 
 function classifyResponseTier(prompt: string): ResponseTier {
   const value = prompt.trim().toLowerCase()
   const complexSignals = /\b(prove|derive|debug|architect|design|compare|evaluate|analy[sz]e|step[- ]by[- ]step|multi[- ]step|in depth|deep dive|optimi[sz]e|algorithm|proof|theorem|differential|integral|matrix|recursion|trade-?offs|raised to|exponent|exponential|power|factorial|summation|series)\b/
-  const mathematicalExpression = /\d\s*(?:\^|\*\*|×|÷|\/|\+|-)\s*\d/.test(value)
+  const mathematicalExpression = /\d\s*(?:\^\s*\{[^}]+\}|\^|\*\*|×|÷|\/|\+|-)\s*\d?|[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼]/.test(value)
   if (isMathPrompt(value) && (complexSignals.test(value) || mathematicalExpression || value.length > 120)) return 'deep'
   if (complexSignals.test(value) || value.length > 650 || (value.match(/\n/g) || []).length >= 3) return 'deep'
   if (/^(what is|what's|whats|who is|when did|where is|define|how many|how much)\b/.test(value) && value.length < 140) return 'quick'
