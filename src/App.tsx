@@ -193,9 +193,23 @@ function getCalculatorContext(prompt: string): string {
     } catch {}
   }
 
+  const percentOf = trimmed.match(/(?:what is |calculate |compute )?(-?\d+(?:\.\d+)?)\s*%\s*of\s*(-?\d+(?:\.\d+)?)/i)
+  if (percentOf) {
+    const result = (Number(percentOf[1]) / 100) * Number(percentOf[2])
+    if (Number.isFinite(result)) return 'Verified local calculator result: ' + percentOf[1] + '% of ' + percentOf[2] + ' = ' + Number(result.toPrecision(14)) + '. Use this result when answering; do not mention an internal calculator unless asked.'
+  }
+
   const explicit = trimmed.match(/(?:calculate|compute|evaluate|solve|what is|what's|whats|how much is)\s+(.+?)[?.!]*$/i)
   const direct = /^[\d.\s()+\-*/%^a-z,]+$/i.test(trimmed) ? trimmed : null
-  const candidate = (explicit?.[1] || direct || '').replace(/[?=]+$/g, '').trim()
+  const verbal = (explicit?.[1] || direct || '').toLowerCase()
+    .replace(/\b(plus|added to)\b/g, '+')
+    .replace(/\b(minus|subtract)\b/g, '-')
+    .replace(/\b(times|multiplied by)\b/g, '*')
+    .replace(/\b(divided by|over)\b/g, '/')
+    .replace(/\b(squared)\b/g, '^2')
+    .replace(/\b(cubed)\b/g, '^3')
+    .replace(/\b(square root of)\s*/g, 'sqrt(')
+  const candidate = verbal.replace(/[?=]+$/g, '').trim()
   if (!candidate || candidate.length > 500 || !/^[\d.a-z_\s()+\-*/%^,]+$/i.test(candidate)) return ''
   try {
     const result = mathEvaluate(candidate)
@@ -1253,17 +1267,17 @@ export default function App() {
   const globalStyle = <style>{`
     :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: #111210; color: #E8E6E0; }
+    body { margin: 0; background: #F5F4EF; color: #292824; }
     button, input, textarea, select { font: inherit; }
     button { transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
     button:hover { filter: brightness(.97); }
     button:active { transform: translateY(1px); }
-    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #A65F43; outline-offset: 2px; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #C66A4A; outline-offset: 2px; }
     input, textarea, select { transition: border-color 160ms ease, box-shadow 160ms ease; }
-    input:focus, textarea:focus, select:focus { border-color: #A65F43 !important; box-shadow: 0 0 0 3px rgba(166,95,67,.12); }
+    input:focus, textarea:focus, select:focus { border-color: #C66A4A !important; box-shadow: 0 0 0 3px rgba(166,95,67,.12); }
     ::selection { background: rgba(166,95,67,.18); }
     ::-webkit-scrollbar { width: 9px; height: 9px; }
-    ::-webkit-scrollbar-thumb { background: #41423D; border: 2px solid #111210; border-radius: 20px; }
+    ::-webkit-scrollbar-thumb { background: #D8D2C7; border: 2px solid #F5F4EF; border-radius: 20px; }
     ::-webkit-scrollbar-track { background: transparent; }
     @media (max-width: 760px) { [data-luxvm-sidebar] { width: 196px !important; min-width: 196px !important; } }
     @media (max-width: 560px) { [data-luxvm-sidebar] { width: 176px !important; min-width: 176px !important; } }
@@ -1335,7 +1349,7 @@ export default function App() {
               style={{
                 ...styles.sessionItem,
                 backgroundColor:
-                  activeTab === 'chat' && session.id === activeSessionId ? '#30312D' : 'transparent',
+                  activeTab === 'chat' && session.id === activeSessionId ? '#E5E1D8' : 'transparent',
               }}
             >
               <span style={styles.sessionTitle}>{session.title}</span>
@@ -1382,12 +1396,12 @@ export default function App() {
             </h3>
 
             {window.luxvmUpdater && (
-            <div style={{ ...styles.fieldRow, padding: '12px', border: '1px solid #41423D', borderRadius: '8px', background: '#20211E' }}>
+            <div style={{ ...styles.fieldRow, padding: '12px', border: '1px solid #D8D2C7', borderRadius: '8px', background: '#F0EEE8' }}>
               <label style={styles.label}>LuxVM Updates</label>
-              <div style={{ fontSize: '12px', color: '#C6C2B8', marginBottom: '10px' }} role="status">{updateStatus}</div>
+              <div style={{ fontSize: '12px', color: '#57534D', marginBottom: '10px' }} role="status">{updateStatus}</div>
               {updateProgress > 0 && updateProgress < 100 && (
-                <div style={{ height: '5px', background: '#30312D', borderRadius: '5px', overflow: 'hidden', marginBottom: '10px' }}>
-                  <div style={{ width: `${updateProgress}%`, height: '100%', background: '#A65F43' }} />
+                <div style={{ height: '5px', background: '#E5E1D8', borderRadius: '5px', overflow: 'hidden', marginBottom: '10px' }}>
+                  <div style={{ width: `${updateProgress}%`, height: '100%', background: '#C66A4A' }} />
                 </div>
               )}
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -1399,7 +1413,7 @@ export default function App() {
                   <button type="button" onClick={installLuxVMUpdate} style={styles.primaryBtn}>Restart and install</button>
                 )}
               </div>
-              <span style={{ display: 'block', fontSize: '11px', color: '#9B988F', marginTop: '8px' }}>Updates download from the public LuxVM releases repository. Your chats and settings remain stored locally.</span>
+              <span style={{ display: 'block', fontSize: '11px', color: '#777168', marginTop: '8px' }}>Updates download from the public LuxVM releases repository. Your chats and settings remain stored locally.</span>
             </div>
             )}
 
@@ -1426,7 +1440,7 @@ export default function App() {
             <div style={styles.fieldRow}>
               <label style={styles.label}>GitHub Personal Access Token</label>
               <input style={styles.input} type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} placeholder="github_pat_..." autoComplete="off" />
-              <span style={{ fontSize: '11px', color: '#9B988F' }}>Kept in memory only for this app session; it is not saved with your settings. Use a fine-grained token limited to this repository with Contents: Read and write.</span>
+              <span style={{ fontSize: '11px', color: '#777168' }}>Kept in memory only for this app session; it is not saved with your settings. Use a fine-grained token limited to this repository with Contents: Read and write.</span>
             </div>
 
             <div style={styles.grid2}>
@@ -1493,7 +1507,7 @@ export default function App() {
                   onChange={(e) => setSessions((prev) => prev.map((session) => session.id === currentSession.id ? { ...session, memory: e.target.value, updatedAt: Date.now() } : session))}
                   placeholder="Facts or preferences LuxVM should retain in this conversation..."
                 />
-                <span style={{ fontSize: '11px', color: '#9B988F' }}>Each chat has separate memory. Only details written here or explicitly marked “remember that” are saved as memory.</span>
+                <span style={{ fontSize: '11px', color: '#777168' }}>Each chat has separate memory. Only details written here or explicitly marked “remember that” are saved as memory.</span>
               </div>
             )}
 
@@ -1536,7 +1550,7 @@ export default function App() {
               {isChatLoading && (
                 <div style={styles.messageRow}>
                   <div style={{ ...styles.bubble, backgroundColor: 'transparent', color: '#A8A69E' }}>
-                    <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: '#A65F43', marginRight: '9px' }} />
+                    <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: '#C66A4A', marginRight: '9px' }} />
                     Thinking…
                   </div>
                 </div>
@@ -1567,7 +1581,7 @@ export default function App() {
                 onClick={toggleMicrophone}
                 style={{
                   ...styles.micBtn,
-                  backgroundColor: isListening ? '#dc2626' : '#A65F43',
+                  backgroundColor: isListening ? '#dc2626' : '#C66A4A',
                 }}
               >
                 {isListening ? ' Listening... (Click to Stop)' : ' Speak to Voice Assistant'}
@@ -1603,10 +1617,10 @@ export default function App() {
                       ...styles.bubble,
                       backgroundColor:
                         msg.role === 'user'
-                          ? '#A65F43'
+                          ? '#C66A4A'
                           : msg.role === 'system'
                           ? '#7f1d1d'
-                          : '#20211E',
+                          : '#F0EEE8',
                     }}
                   >
                     <div style={styles.meta}>
@@ -1619,7 +1633,7 @@ export default function App() {
               ))}
               {isVoiceLoading && (
                 <div style={styles.messageRow}>
-                  <div style={{ ...styles.bubble, backgroundColor: '#20211E', opacity: 0.8 }}>
+                  <div style={{ ...styles.bubble, backgroundColor: '#F0EEE8', opacity: 0.8 }}>
                     Processing voice response...
                   </div>
                 </div>
@@ -1683,7 +1697,7 @@ export default function App() {
 
             <div style={styles.codexRight}>
               <div style={styles.codexToolbar}>
-                <span style={{ fontSize: '12px', color: '#9B988F' }}>{codexLang} Output</span>
+                <span style={{ fontSize: '12px', color: '#777168' }}>{codexLang} Output</span>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button type="button" onClick={copyCodeToClipboard} style={styles.secondaryBtn}>
                     {copiedCode ? ' Copied!' : ' Copy Code'}
@@ -1699,7 +1713,7 @@ export default function App() {
               <pre style={styles.codeBlock}>
                 <code>{codexOutput}</code>
               </pre>
-              {githubStatus && <div style={{ padding: '9px 16px', fontSize: '12px', color: githubStatus.startsWith('Committed') ? '#52664D' : '#8A4938', background: '#171815' }}>{githubStatus}</div>}
+              {githubStatus && <div style={{ padding: '9px 16px', fontSize: '12px', color: githubStatus.startsWith('Committed') ? '#52664D' : '#8A4938', background: '#FFFFFF' }}>{githubStatus}</div>}
             </div>
           </div>
         )}
@@ -1812,7 +1826,7 @@ export default function App() {
 
             <div style={styles.imageGallery}>
               {generatedImages.length === 0 && !isImageLoading && (
-                <div style={{ color: '#9B988F', textAlign: 'center', marginTop: '60px' }}>
+                <div style={{ color: '#777168', textAlign: 'center', marginTop: '60px' }}>
                   Enter a prompt above to generate images using {models.image}
                 </div>
               )}
@@ -1820,7 +1834,7 @@ export default function App() {
                 <div key={img.id} style={styles.imageCard}>
                   <img src={img.url} alt={img.prompt} style={styles.generatedImg} />
                   <div style={styles.imageCardFooter}>
-                    <span style={{ fontSize: '12px', color: '#C6C2B8', flex: 1 }}>{img.prompt}</span>
+                    <span style={{ fontSize: '12px', color: '#57534D', flex: 1 }}>{img.prompt}</span>
                     <a
                       href={img.url}
                       download={`luxvm-image-${img.id}.png`}
@@ -1871,23 +1885,23 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
   },
   approvalModal: {
-    width: 'min(520px, 100%)', background: '#111210', color: '#E8E6E0',
-    border: '1px solid #30312D', borderRadius: '12px', padding: '22px',
+    width: 'min(520px, 100%)', background: '#F5F4EF', color: '#292824',
+    border: '1px solid #E5E1D8', borderRadius: '12px', padding: '22px',
     boxShadow: '0 18px 60px rgba(35,32,28,.22)',
   },
   appContainer: {
     display: 'flex',
     height: '100vh',
     width: '100vw',
-    backgroundColor: '#111210',
-    color: '#E8E6E0',
+    backgroundColor: '#F5F4EF',
+    color: '#292824',
     fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     overflow: 'hidden',
   },
   sidebar: {
     width: '228px',
-    backgroundColor: '#171815',
-    borderRight: '1px solid #292A26',
+    backgroundColor: '#FFFFFF',
+    borderRight: '1px solid #E5E1D8',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -1897,7 +1911,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '10px',
     padding: '16px',
     fontSize: '16px',
-    borderBottom: '1px solid #20211E',
+    borderBottom: '1px solid #F0EEE8',
   },
   navMenu: {
     display: 'flex',
@@ -1908,7 +1922,7 @@ const styles: Record<string, React.CSSProperties> = {
   navBtn: {
     textAlign: 'left',
     backgroundColor: 'transparent',
-    color: '#C6C2B8',
+    color: '#57534D',
     border: 'none',
     padding: '9px 12px',
     borderRadius: '6px',
@@ -1917,13 +1931,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
   },
   navBtnActive: {
-    backgroundColor: '#20211E',
-    color: '#E8E6E0',
-    borderLeft: '3px solid #A65F43',
+    backgroundColor: '#F0EEE8',
+    color: '#292824',
+    borderLeft: '3px solid #C66A4A',
   },
   divider: {
     height: '1px',
-    backgroundColor: '#20211E',
+    backgroundColor: '#F0EEE8',
     margin: '4px 0',
   },
   sidebarHeader: {
@@ -1931,8 +1945,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   newChatBtn: {
     width: '100%',
-    backgroundColor: '#A65F43',
-    color: '#151613',
+    backgroundColor: '#C66A4A',
+    color: '#FFFFFF',
     border: 'none',
     padding: '8px',
     borderRadius: '6px',
@@ -1956,7 +1970,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '12px',
-    color: '#C6C2B8',
+    color: '#57534D',
   },
   sessionTitle: {
     overflow: 'hidden',
@@ -1967,7 +1981,7 @@ const styles: Record<string, React.CSSProperties> = {
   deleteBtn: {
     background: 'none',
     border: 'none',
-    color: '#9B988F',
+    color: '#777168',
     cursor: 'pointer',
     fontSize: '15px',
     padding: '0 4px',
@@ -1984,8 +1998,8 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 20px',
-    backgroundColor: '#111210',
-    borderBottom: '1px solid #292A26',
+    backgroundColor: '#F5F4EF',
+    borderBottom: '1px solid #E5E1D8',
   },
   brand: {
     display: 'flex',
@@ -1997,23 +2011,23 @@ const styles: Record<string, React.CSSProperties> = {
     width: '10px',
     height: '10px',
     borderRadius: '50%',
-    backgroundColor: '#879078',
+    backgroundColor: '#8A8F79',
   },
   badge: {
     fontSize: '11px',
     padding: '3px 8px',
     borderRadius: '12px',
-    backgroundColor: '#111210',
-    color: '#9B988F',
-    border: '1px solid #30312D',
+    backgroundColor: '#F5F4EF',
+    color: '#777168',
+    border: '1px solid #E5E1D8',
   },
   actions: {
     display: 'flex',
     gap: '10px',
   },
   primaryBtn: {
-    backgroundColor: '#A65F43',
-    color: '#151613',
+    backgroundColor: '#C66A4A',
+    color: '#FFFFFF',
     border: 'none',
     padding: '7px 14px',
     borderRadius: '6px',
@@ -2022,8 +2036,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
   },
   secondaryBtn: {
-    backgroundColor: '#30312D',
-    color: '#E8E6E0',
+    backgroundColor: '#E5E1D8',
+    color: '#292824',
     border: 'none',
     padding: '6px 12px',
     borderRadius: '6px',
@@ -2032,8 +2046,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   settingsPanel: {
     padding: '16px 20px',
-    backgroundColor: '#191A17',
-    borderBottom: '1px solid #292A26',
+    backgroundColor: '#F7F5F0',
+    borderBottom: '1px solid #E5E1D8',
   },
   grid2: {
     display: 'grid',
@@ -2046,7 +2060,7 @@ const styles: Record<string, React.CSSProperties> = {
   label: {
     display: 'block',
     fontSize: '11px',
-    color: '#9B988F',
+    color: '#777168',
     marginBottom: '4px',
   },
   input: {
@@ -2054,9 +2068,9 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: 'border-box',
     padding: '8px 10px',
     borderRadius: '6px',
-    border: '1px solid #41423D',
-    backgroundColor: '#20211E',
-    color: '#E8E6E0',
+    border: '1px solid #D8D2C7',
+    backgroundColor: '#F0EEE8',
+    color: '#292824',
     fontSize: '13px',
   },
   chatArea: {
@@ -2102,21 +2116,21 @@ const styles: Record<string, React.CSSProperties> = {
     borderTop: 'none',
     gap: '10px',
     padding: '14px 20px 22px',
-    backgroundColor: '#111210',
+    backgroundColor: '#F5F4EF',
   },
   chatInput: {
     flex: 1,
     padding: '14px 18px',
     borderRadius: '16px',
-    border: '1px solid #41423D',
-    backgroundColor: '#20211E',
-    color: '#E8E6E0',
+    border: '1px solid #D8D2C7',
+    backgroundColor: '#F0EEE8',
+    color: '#292824',
     fontSize: '14px',
     outline: 'none',
   },
   sendBtn: {
-    backgroundColor: '#E8E6E0',
-    color: '#20211E',
+    backgroundColor: '#292824',
+    color: '#F0EEE8',
     border: 'none',
     padding: '0 20px',
     borderRadius: '8px',
@@ -2129,11 +2143,11 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '16px',
     padding: '12px 20px',
-    backgroundColor: '#171815',
-    borderBottom: '1px solid #20211E',
+    backgroundColor: '#FFFFFF',
+    borderBottom: '1px solid #F0EEE8',
   },
   micBtn: {
-    color: '#E8E6E0',
+    color: '#292824',
     border: 'none',
     padding: '10px 18px',
     borderRadius: '8px',
@@ -2149,10 +2163,10 @@ const styles: Record<string, React.CSSProperties> = {
   codexLeft: {
     width: '320px',
     padding: '16px',
-    borderRight: '1px solid #20211E',
+    borderRight: '1px solid #F0EEE8',
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: '#171815',
+    backgroundColor: '#FFFFFF',
   },
   codexRight: {
     flex: 1,
@@ -2165,15 +2179,15 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '10px 16px',
-    backgroundColor: '#20211E',
-    borderBottom: '1px solid #30312D',
+    backgroundColor: '#F0EEE8',
+    borderBottom: '1px solid #E5E1D8',
   },
   codeBlock: {
     flex: 1,
     margin: 0,
     padding: '16px',
     overflow: 'auto',
-    backgroundColor: '#151613',
+    backgroundColor: '#FFFFFF',
     color: '#e2e8f0',
     fontSize: '13px',
     fontFamily: 'Consolas, Monaco, "Courier New", monospace',
@@ -2264,8 +2278,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     gap: '10px',
     padding: '14px 20px',
-    backgroundColor: '#171815',
-    borderBottom: '1px solid #20211E',
+    backgroundColor: '#FFFFFF',
+    borderBottom: '1px solid #F0EEE8',
   },
   imageGallery: {
     flex: 1,
@@ -2277,10 +2291,10 @@ const styles: Record<string, React.CSSProperties> = {
     alignContent: 'start',
   },
   imageCard: {
-    backgroundColor: '#20211E',
+    backgroundColor: '#F0EEE8',
     borderRadius: '10px',
     overflow: 'hidden',
-    border: '1px solid #30312D',
+    border: '1px solid #E5E1D8',
   },
   generatedImg: {
     width: '100%',
