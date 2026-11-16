@@ -1808,7 +1808,7 @@ export default function App() {
 
         {activeTab === 'image' && (
           <div style={styles.imageContainer}>
-            <form onSubmit={generateImage} style={styles.imageControls}>
+            <form data-luxvm-surface onSubmit={generateImage} style={styles.imageControls}>
               <input
                 style={{ ...styles.chatInput, flex: 1 }}
                 value={imagePrompt}
@@ -1841,14 +1841,14 @@ export default function App() {
               </div>
             )}
 
-            <div style={styles.imageGallery}>
+            <div data-luxvm-surface style={styles.imageGallery}>
               {generatedImages.length === 0 && !isImageLoading && (
                 <div style={{ color: '#777168', textAlign: 'center', marginTop: '60px' }}>
                   Enter a prompt above to generate images using {models.image}
                 </div>
               )}
               {generatedImages.map((img) => (
-                <div key={img.id} style={styles.imageCard}>
+                <div key={img.id} data-luxvm-surface style={styles.imageCard}>
                   <img src={img.url} alt={img.prompt} style={styles.generatedImg} />
                   <div style={styles.imageCardFooter}>
                     <span style={{ fontSize: '12px', color: '#57534D', flex: 1 }}>{img.prompt}</span>
