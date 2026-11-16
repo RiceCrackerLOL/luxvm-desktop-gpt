@@ -1,0 +1,44 @@
+name: Build and publish LuxVM Web App
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: luxvm-web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    name: Build LuxVM web interface
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Type-check and build website
+        run: npm run build:web
+
+      - name: Publish website to the public releases repository
+        if: github.event_name != 'pull_request'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.LUXVM_RELEASES_TOKEN }}
+          external_repository: RiceCrackerLOL/luxvm-releases
+          publish_branch: gh-pages
+          publish_dir: ./dist
+          force_orphan: true
