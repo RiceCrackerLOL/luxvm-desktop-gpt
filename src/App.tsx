@@ -480,6 +480,7 @@ function getAllLegalMoves(board: Board, whiteTurn: boolean, history: string[] = 
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('chat')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [githubRepo, setGithubRepo] = useState<string>(() => safeGetStorage<any>(SETTINGS_KEY, {}).githubRepo || 'RiceCrackerLOL/luxvm-desktop-gpt')
   const [githubToken, setGithubToken] = useState('')
@@ -1270,19 +1271,18 @@ export default function App() {
   const globalStyle = <style>{`
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
     * { box-sizing: border-box; }
-    [data-luxvm-theme="dark"] { background: #17191C !important; color: #F5F6F7 !important; color-scheme: dark; }
-    [data-luxvm-theme="dark"] aside,
-    [data-luxvm-theme="dark"] header,
-    [data-luxvm-theme="dark"] main,
-    [data-luxvm-theme="dark"] form,
-    [data-luxvm-theme="dark"] section,
-    [data-luxvm-theme="dark"] pre,
-    [data-luxvm-theme="dark"] input,
-    [data-luxvm-theme="dark"] textarea,
-    [data-luxvm-theme="dark"] select { background-color: #202328 !important; color: #F5F6F7 !important; border-color: #3B4149 !important; }
-    [data-luxvm-theme="dark"] *:not([data-luxvm-chess]):not([data-luxvm-chess] *) { color: #F5F6F7 !important; border-color: #3B4149 !important; }
-    [data-luxvm-theme="dark"] button { color: #FFFFFF !important; border-color: #414852 !important; }
-    [data-luxvm-theme="dark"] button:not([data-theme-choice]) { background-color: #343A42 !important; }
+    [data-luxvm-theme="dark"] { background: #191A1D !important; color: #E8E9EB !important; color-scheme: dark; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] { background: #1B1D21 !important; border-right: 1px solid #2B2E34 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-main] { background: #191A1D !important; }
+    [data-luxvm-theme="dark"] header, [data-luxvm-theme="dark"] [data-luxvm-chat-area] { background: #191A1D !important; border: 0 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-chat-composer] { background: #202328 !important; border: 1px solid #373B43 !important; border-radius: 18px !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-chat-composer] input { background: transparent !important; color: #F5F6F7 !important; border: 0 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-message="user"] { background: #24272D !important; color: #F5F6F7 !important; border: 0 !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-message="assistant"] { background: transparent !important; color: #E8E9EB !important; border: 0 !important; }
+    [data-luxvm-theme="dark"] input, [data-luxvm-theme="dark"] textarea, [data-luxvm-theme="dark"] select, [data-luxvm-theme="dark"] pre { background: #202328 !important; color: #F5F6F7 !important; border-color: #3B4149 !important; }
+    [data-luxvm-theme="dark"] *:not([data-luxvm-chess]):not([data-luxvm-chess] *) { color: #E8E9EB !important; }
+    [data-luxvm-theme="dark"] button { color: #FFFFFF !important; border-color: transparent !important; }
+    [data-luxvm-theme="dark"] button:not([data-theme-choice]) { background-color: #25282E !important; }
     [data-luxvm-theme="dark"] [data-theme-choice][aria-pressed="true"] { background: #3B4652 !important; border-color: #9BAFC2 !important; }
     [data-luxvm-theme="dark"] [data-luxvm-chess] { color-scheme: light; }
     body { margin: 0; background: #F5F4EF; color: #292824; }
@@ -1297,96 +1297,44 @@ export default function App() {
     ::-webkit-scrollbar { width: 9px; height: 9px; }
     ::-webkit-scrollbar-thumb { background: #D8D2C7; border: 2px solid #F5F4EF; border-radius: 20px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    @media (max-width: 760px) { [data-luxvm-sidebar] { width: 196px !important; min-width: 196px !important; } }
-    @media (max-width: 560px) { [data-luxvm-sidebar] { width: 176px !important; min-width: 176px !important; } }
+    [data-luxvm-sidebar][data-collapsed="true"] { width: 64px !important; min-width: 64px !important; }
+    @media (max-width: 760px) { [data-luxvm-sidebar]:not([data-collapsed="true"]) { width: 220px !important; min-width: 220px !important; } }
+    @media (max-width: 560px) { [data-luxvm-sidebar]:not([data-collapsed="true"]) { width: 200px !important; min-width: 200px !important; } }
   `}</style>
 
   return (
     <div data-luxvm-theme={theme} style={styles.appContainer}>
       {globalStyle}
-      <aside data-luxvm-sidebar style={styles.sidebar}>
+      <aside data-luxvm-sidebar data-collapsed={sidebarCollapsed} style={{ ...styles.sidebar, ...(sidebarCollapsed ? styles.sidebarCollapsed : {}) }}>
         <div style={styles.sidebarBrand}>
-          <span style={styles.dot} />
-          <strong>LuxVM Studio</strong>
+          {!sidebarCollapsed && <><span style={styles.dot} /><strong>LuxVM</strong></>}
+          <button type="button" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={styles.sidebarToggle}>{sidebarCollapsed ? '›' : '‹'}</button>
         </div>
-
         <nav style={styles.navMenu}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('chat')}
-            style={{ ...styles.navBtn, ...(activeTab === 'chat' ? styles.navBtnActive : {}) }}
-          >
-             General Chat
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('voice')}
-            style={{ ...styles.navBtn, ...(activeTab === 'voice' ? styles.navBtnActive : {}) }}
-          >
-             Voice Assistant
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('codex')}
-            style={{ ...styles.navBtn, ...(activeTab === 'codex' ? styles.navBtnActive : {}) }}
-          >
-             Codex Studio
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('chess')}
-            style={{ ...styles.navBtn, ...(activeTab === 'chess' ? styles.navBtnActive : {}) }}
-          >
-             Chess Bot
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('image')}
-            style={{ ...styles.navBtn, ...(activeTab === 'image' ? styles.navBtnActive : {}) }}
-          >
-             Image Studio
-          </button>
+          <button type="button" title="General Chat" aria-label="General Chat" onClick={() => setActiveTab('chat')} style={{ ...styles.navBtn, ...(activeTab === 'chat' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'New'}</button>
+          <button type="button" title="Voice Assistant" aria-label="Voice Assistant" onClick={() => setActiveTab('voice')} style={{ ...styles.navBtn, ...(activeTab === 'voice' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>◷</span>{!sidebarCollapsed && 'Voice Assistant'}</button>
+          <button type="button" title="Codex Studio" aria-label="Codex Studio" onClick={() => setActiveTab('codex')} style={{ ...styles.navBtn, ...(activeTab === 'codex' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Codex Studio'}</button>
+          <button type="button" title="Chess Bot" aria-label="Chess Bot" onClick={() => setActiveTab('chess')} style={{ ...styles.navBtn, ...(activeTab === 'chess' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>♙</span>{!sidebarCollapsed && 'Chess Bot'}</button>
+          <button type="button" title="Image Studio" aria-label="Image Studio" onClick={() => setActiveTab('image')} style={{ ...styles.navBtn, ...(activeTab === 'image' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>▧</span>{!sidebarCollapsed && 'Image Studio'}</button>
         </nav>
-
-        <div style={styles.divider} />
-
-        <div style={styles.sidebarHeader}>
-          <button type="button" onClick={createNewChat} style={styles.newChatBtn}>
-            + New Chat Thread
-          </button>
-        </div>
-
-        <div style={styles.sessionList}>
-          {sessions.map((session) => (
-            <div
-              key={session.id}
-              onClick={() => {
-                setActiveSessionId(session.id)
-                setActiveTab('chat')
-              }}
-              style={{
-                ...styles.sessionItem,
-                backgroundColor:
-                  activeTab === 'chat' && session.id === activeSessionId ? '#E5E1D8' : 'transparent',
-              }}
-            >
-              <span style={styles.sessionTitle}>{session.title}</span>
-              <button
-                type="button"
-                onClick={(e) => deleteSession(session.id, e)}
-                style={styles.deleteBtn}
-                title="Delete Chat"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
+        {!sidebarCollapsed && <>
+          <div style={styles.divider} />
+          <div style={styles.sidebarHeader}><button type="button" onClick={createNewChat} style={styles.newChatBtn}>+ New Chat</button></div>
+          <div style={styles.sessionList}>
+            {sessions.map((session) => (
+              <div key={session.id} onClick={() => { setActiveSessionId(session.id); setActiveTab('chat') }} style={{ ...styles.sessionItem, backgroundColor: activeTab === 'chat' && session.id === activeSessionId ? '#E5E1D8' : 'transparent' }}>
+                <span style={styles.sessionTitle}>{session.title}</span>
+                <button type="button" onClick={(e) => deleteSession(session.id, e)} style={styles.deleteBtn} title="Delete Chat">×</button>
+              </div>
+            ))}
+          </div>
+        </>}
       </aside>
 
-      <div style={styles.mainContent}>
+      <div data-luxvm-main style={styles.mainContent}>
         <header style={styles.header}>
           <div style={styles.brand}>
+            {sidebarCollapsed && <button type="button" onClick={() => setSidebarCollapsed(false)} aria-label="Expand sidebar" title="Expand sidebar" style={styles.headerMenuBtn}>☰</button>}
             <strong>
               {activeTab === 'chat' && ' General Chat'}
               {activeTab === 'voice' && ' Voice Assistant'}
@@ -1545,7 +1493,7 @@ export default function App() {
 
         {activeTab === 'chat' && (
           <>
-            <main style={styles.chatArea}>
+            <main data-luxvm-chat-area style={styles.chatArea}>
               {currentSession?.messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -1557,6 +1505,9 @@ export default function App() {
                   <div
                     style={{
                       ...styles.bubble,
+                      border: 'none', boxShadow: 'none',
+                      borderRadius: msg.role === 'user' ? '18px' : '0',
+                      padding: msg.role === 'user' ? '12px 18px' : '4px 0',
                       backgroundColor:
                         msg.role === 'user'
                           ? (theme === 'dark' ? '#343A42' : '#292B27')
@@ -1565,6 +1516,7 @@ export default function App() {
                           : 'transparent',
                       color: msg.role === 'user' ? '#FFFFFF' : (theme === 'dark' ? '#F5F6F7' : '#292824'),
                     }}
+                    data-luxvm-message={msg.role === 'user' ? 'user' : 'assistant'}
                   >
                     <div style={styles.meta}>
                       <span>{msg.role === 'user' ? 'You' : msg.role === 'system' ? 'System' : 'LuxVM'}</span>
@@ -1585,7 +1537,7 @@ export default function App() {
               <div ref={chatBottomRef} />
             </main>
 
-            <form onSubmit={sendChatMessage} style={styles.footer}>
+            <form data-luxvm-chat-composer onSubmit={sendChatMessage} style={styles.footer}>
               <input
                 style={styles.chatInput}
                 value={chatInput}
@@ -1925,10 +1877,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     overflow: 'hidden',
   },
+  sidebarCollapsed: { width: '64px', minWidth: '64px' },
+  sidebarToggle: { marginLeft: 'auto', width: '30px', height: '30px', border: 'none', borderRadius: '8px', background: 'transparent', color: '#A8ABB2', cursor: 'pointer', fontSize: '22px', lineHeight: 1 },
+  headerMenuBtn: { border: 'none', background: 'transparent', color: '#A8ABB2', cursor: 'pointer', fontSize: '18px', marginRight: '12px', padding: '4px 8px' },
+  navIcon: { display: 'inline-flex', width: '24px', justifyContent: 'center', alignItems: 'center', marginRight: '10px', fontSize: '17px', fontWeight: 600 },
   sidebar: {
-    width: '228px',
-    backgroundColor: '#FFFFFF',
-    borderRight: '1px solid #E5E1D8',
+    width: '258px', minWidth: '258px',
+    backgroundColor: '#F2F2F2',
+    borderRight: '1px solid #E5E5E5',
+    transition: 'width 180ms ease, min-width 180ms ease',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -1936,9 +1893,9 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    padding: '16px',
+    padding: '14px 12px', minHeight: '58px',
     fontSize: '16px',
-    borderBottom: '1px solid #F0EEE8',
+    borderBottom: '0',
   },
   navMenu: {
     display: 'flex',
@@ -2138,19 +2095,19 @@ const styles: Record<string, React.CSSProperties> = {
   footer: {
     display: 'flex',
     width: '100%',
-    maxWidth: '940px',
-    margin: '0 auto',
-    borderTop: 'none',
+    maxWidth: '780px',
+    margin: '0 auto 24px',
+    border: '1px solid #D9DDE2', borderRadius: '18px',
     gap: '10px',
-    padding: '14px 20px 22px',
-    backgroundColor: '#F5F4EF',
+    padding: '10px 12px 10px 18px',
+    backgroundColor: '#FFFFFF',
   },
   chatInput: {
     flex: 1,
     padding: '14px 18px',
     borderRadius: '16px',
-    border: '1px solid #D8D2C7',
-    backgroundColor: '#F0EEE8',
+    border: 'none',
+    backgroundColor: 'transparent',
     color: '#292824',
     fontSize: '14px',
     outline: 'none',
