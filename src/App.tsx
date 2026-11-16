@@ -1745,7 +1745,7 @@ export default function App() {
         )}
 
         {activeTab === 'chess' && (
-          <div style={styles.chessContainer}>
+          <div data-luxvm-chess style={styles.chessContainer}>
             <div style={styles.chessBoardWrapper}>
               <div style={styles.chessStatusBar}>
                 <span>{chessStatus}</span>
