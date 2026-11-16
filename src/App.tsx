@@ -173,7 +173,7 @@ function getDirectCalculatorAnswer(prompt: string): string | null {
   if (/\\b(?:import|createUnit|evaluate|parse|simplify|derivative|help|version|config|typed|reviver|replacer)\\b/i.test(expression)) return null
   try {
     const result = preciseMath.evaluate(expression)
-    if (result && typeof result.toString === 'function' && (result.isBigNumber === true || typeof result === 'number')) {
+    if (result && typeof result.toString === 'function' && (preciseMath.isBigNumber(result) || typeof result === 'number')) {
       const output = result.toString()
       if (output && output !== 'NaN' && output !== 'Infinity' && output !== '-Infinity') {
         return output
