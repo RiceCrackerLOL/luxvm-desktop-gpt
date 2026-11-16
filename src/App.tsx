@@ -1732,11 +1732,24 @@ export default function App() {
                             : isDark
                             ? '#30312D'
                             : '#9B988F',
-                          color: cell && isWhitePiece(cell) ? '#E8E6E0' : '#171815',
                         }}
                       >
                         {isLegalDest && <div style={styles.legalDot} />}
-                        {cell ? PIECE_UNICODE[cell] : ''}
+                        {cell && (
+                          <span
+                            aria-label={`${isWhitePiece(cell) ? 'White' : 'Black'} ${cell.toUpperCase()}`}
+                            style={{
+                              ...styles.chessPiece,
+                              color: isWhitePiece(cell) ? '#FFFFFF' : '#171815',
+                              WebkitTextStroke: isWhitePiece(cell) ? '1.15px #252620' : '1.35px #F3EFE5',
+                              textShadow: isWhitePiece(cell)
+                                ? '0 1px 2px rgba(0,0,0,.7)'
+                                : '0 1px 2px rgba(255,255,255,.65)',
+                            }}
+                          >
+                            {PIECE_UNICODE[cell]}
+                          </span>
+                        )}
                       </div>
                     )
                   })
@@ -2204,10 +2217,20 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '36px',
     cursor: 'pointer',
     position: 'relative',
     userSelect: 'none',
+  },
+  chessPiece: {
+    position: 'relative',
+    zIndex: 1,
+    display: 'block',
+    fontSize: '43px',
+    lineHeight: 1,
+    fontFamily: '"Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", serif',
+    fontWeight: 700,
+    paintOrder: 'stroke fill',
+    pointerEvents: 'none',
   },
   legalDot: {
     position: 'absolute',
