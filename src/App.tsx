@@ -573,6 +573,9 @@ export default function App() {
     ...(initialSettings.models || {}),
   })
   const [theme, setTheme] = useState<'light' | 'dark'>(initialSettings.theme === 'dark' ? 'dark' : 'light')
+  const [imageProvider, setImageProvider] = useState<'openrouter' | 'cloudflare'>(initialSettings.imageProvider === 'cloudflare' ? 'cloudflare' : 'openrouter')
+  const [cloudflareWorkerUrl, setCloudflareWorkerUrl] = useState<string>(initialSettings.cloudflareWorkerUrl || '')
+  const [cloudflareAccessKey, setCloudflareAccessKey] = useState<string>(initialSettings.cloudflareAccessKey || '')
 
   useEffect(() => {
     safeSetStorage(SETTINGS_KEY, {
@@ -581,8 +584,11 @@ export default function App() {
       models,
       githubRepo: githubRepo.trim(),
       theme,
+      imageProvider,
+      cloudflareWorkerUrl: cloudflareWorkerUrl.trim(),
+      cloudflareAccessKey: cloudflareAccessKey.trim(),
     })
-  }, [apiKey, systemPrompt, models, githubRepo, theme])
+  }, [apiKey, systemPrompt, models, githubRepo, theme, imageProvider, cloudflareWorkerUrl, cloudflareAccessKey])
 
   const openRouterHeaders = (key = apiKey) => ({
     'Content-Type': 'application/json',
@@ -1289,43 +1295,42 @@ export default function App() {
     setImageError('')
 
     try {
-      if (!apiKey.trim()) throw new Error('Please enter your OpenRouter API key in Settings.')
-
       const prompt = referenceImage && keepOriginalElements
         ? `${imagePrompt.trim()} Preserve the original subject, identity, and important visual elements from the reference image unless the requested changes explicitly require changing them.`
         : imagePrompt.trim()
-      const requestBody: Record<string, any> = {
-        model: models.image,
-        prompt,
-        aspect_ratio: aspectRatio,
-      }
-      if (referenceImage) {
-        requestBody.input_references = [{
-          type: 'image_url',
-          image_url: { url: referenceImage.url },
-        }]
-      }
-
-      const res = await fetch(OPENROUTER_IMAGE_URL, {
-        method: 'POST',
-        headers: openRouterHeaders(),
-        body: JSON.stringify(requestBody),
-      })
-
-      const rawText = await res.text()
-      if (!res.ok) {
-        throw new Error(getOpenRouterError(rawText, res.status))
-      }
-
-      const data = JSON.parse(rawText)
-      const item = data?.data?.[0]
       let imgUrl = ''
-      if (item?.b64_json) {
-        imgUrl = `data:image/png;base64,${item.b64_json}`
-      } else if (item?.url) {
-        imgUrl = item.url
+      if (imageProvider === 'cloudflare') {
+        if (!cloudflareWorkerUrl.trim()) throw new Error('Add your Cloudflare Worker URL in Settings before using FLUX.2.')
+        if (!cloudflareAccessKey.trim()) throw new Error('Add your Cloudflare Worker access key in Settings before using FLUX.2.')
+        const [ratioWidth, ratioHeight] = aspectRatio.split(':').map(Number)
+        const width = ratioWidth >= ratioHeight ? 1024 : Math.max(256, Math.round(1024 * ratioWidth / ratioHeight))
+        const height = ratioHeight >= ratioWidth ? 1024 : Math.max(256, Math.round(1024 * ratioHeight / ratioWidth))
+        const response = await fetch(cloudflareWorkerUrl.trim(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cloudflareAccessKey.trim()}` },
+          body: JSON.stringify({ prompt, width, height, referenceImage: referenceImage?.url || null }),
+        })
+        const raw = await response.text()
+        if (!response.ok) {
+          let detail = raw
+          try { detail = JSON.parse(raw).error || raw } catch { /* keep response text */ }
+          throw new Error(`Cloudflare FLUX.2 failed (${response.status}): ${detail}`)
+        }
+        const result = JSON.parse(raw)
+        if (!result.image) throw new Error('Cloudflare returned no image data.')
+        imgUrl = result.image.startsWith('data:') ? result.image : `data:image/png;base64,${result.image}`
       } else {
-        throw new Error('No image data returned by model.')
+        if (!apiKey.trim()) throw new Error('Please enter your OpenRouter API key in Settings.')
+        const requestBody: Record<string, any> = { model: models.image, prompt, aspect_ratio: aspectRatio }
+        if (referenceImage) requestBody.input_references = [{ type: 'image_url', image_url: { url: referenceImage.url } }]
+        const res = await fetch(OPENROUTER_IMAGE_URL, { method: 'POST', headers: openRouterHeaders(), body: JSON.stringify(requestBody) })
+        const rawText = await res.text()
+        if (!res.ok) throw new Error(getOpenRouterError(rawText, res.status))
+        const data = JSON.parse(rawText)
+        const item = data?.data?.[0]
+        if (item?.b64_json) imgUrl = `data:image/png;base64,${item.b64_json}`
+        else if (item?.url) imgUrl = item.url
+        else throw new Error('No image data returned by model.')
       }
 
       setGeneratedImages((prev) => [
@@ -1596,6 +1601,18 @@ export default function App() {
               </div>
             </div>
 
+            <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
+              <label style={styles.label}>Image generation provider</label>
+              <select style={styles.input} value={imageProvider} onChange={(e) => setImageProvider(e.target.value as 'openrouter' | 'cloudflare')}>
+                <option value="openrouter">OpenRouter</option>
+                <option value="cloudflare">Cloudflare FLUX.2 Klein 4B</option>
+              </select>
+              <label style={{ ...styles.label, marginTop: '10px' }}>Cloudflare Worker URL</label>
+              <input style={styles.input} value={cloudflareWorkerUrl} onChange={(e) => setCloudflareWorkerUrl(e.target.value)} placeholder="https://luxvm-flux.your-subdomain.workers.dev" />
+              <label style={{ ...styles.label, marginTop: '10px' }}>Cloudflare Worker access key</label>
+              <input style={styles.input} type="password" value={cloudflareAccessKey} onChange={(e) => setCloudflareAccessKey(e.target.value)} placeholder="Your private Worker access key" autoComplete="off" />
+              <span style={{ fontSize: '11px', color: '#777168' }}>The Cloudflare API token stays on the Worker and is never embedded in LuxVM.</span>
+            </div>
             <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
               <label style={styles.label}>Permanent Personality / System Prompt</label>
               <textarea
@@ -1903,6 +1920,7 @@ export default function App() {
 
         {activeTab === 'image' && (
           <div style={styles.imageContainer}>
+            <div style={{ padding: '10px 20px 0', fontSize: '12px', color: '#777168' }}>Image provider: <strong>{imageProvider === 'cloudflare' ? 'Cloudflare FLUX.2 Klein 4B' : 'OpenRouter'}</strong></div>
             <form data-luxvm-surface onSubmit={generateImage} style={{ ...styles.imageControls, flexDirection: 'column', alignItems: 'stretch' }}>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <label style={{ ...styles.secondaryBtn, display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
