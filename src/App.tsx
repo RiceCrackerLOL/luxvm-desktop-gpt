@@ -143,7 +143,7 @@ const preciseMath = create(all, { number: 'BigNumber', precision: 64 })
 type ResponseTier = 'quick' | 'standard' | 'deep'
 
 function isMathPrompt(prompt: string): boolean {
-  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed|square root|sqrt|percent|percentage)\b|\d\s*(?:\^|\*\*|×|÷|\/|\+|-)\s*\d/i.test(prompt)
+  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed|square root|sqrt|percent|percentage|factorial|logarithm|log|ln|sine|cosine|tangent|permutation|combination|summation|series|vector)\b|\d\s*(?:\^|\*\*|×|÷|\/|\+|-|!)\s*\d?/i.test(prompt)
 }
 
 function classifyResponseTier(prompt: string): ResponseTier {
