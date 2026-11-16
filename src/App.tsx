@@ -221,7 +221,7 @@ async function solveWithSageMathCell(
         },
         {
           role: 'user',
-          content: 'Convert this problem into SageMath code and calculate its final answer only:\\n\\n' + question,
+          content: 'Convert this problem into SageMath code and calculate its final answer only:\n\n' + question,
         },
       ],
     }),
@@ -231,17 +231,17 @@ async function solveWithSageMathCell(
   if (!codegenResponse.ok) throw new Error(getOpenRouterError(codegenText, codegenResponse.status))
   const codegenData = JSON.parse(codegenText)
   let sageCode = extractOpenRouterText(codegenData, 'The math model did not return SageMath code.')
-    .replace(/^\\x60{3}(?:sage|python)?\\s*/i, '')
-    .replace(/\\s*\\x60{3}$/, '')
+    .replace(/^\x60{3}(?:sage|python)?\s*/i, '')
+    .replace(/\s*\x60{3}$/, '')
     .trim()
 
   if (!sageCode || sageCode.length > 8000) {
     throw new Error('The math model did not produce valid SageMath code. Please rephrase the problem.')
   }
-  if (!/\\bprint\\s*\\(/.test(sageCode)) {
+  if (!/\bprint\s*\(/.test(sageCode)) {
     throw new Error('The math model did not provide a final-answer output. Please try again.')
   }
-  if (/\\b(import|exec|eval|compile|open|input|interact|while)\\b|__|(?:os|sys|subprocess|socket|requests|urllib|pathlib)\\s*\\./i.test(sageCode)) {
+  if (/\b(import|exec|eval|compile|open|input|interact|while)\b|__|(?:os|sys|subprocess|socket|requests|urllib|pathlib)\s*\./i.test(sageCode)) {
     throw new Error('The generated calculation was blocked by LuxVM safety checks. Please rephrase the problem.')
   }
 
