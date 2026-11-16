@@ -159,18 +159,18 @@ function classifyResponseTier(prompt: string): ResponseTier {
 
 function getDirectCalculatorAnswer(prompt: string): string | null {
   const expression = prompt.trim()
-    .replace(/^(?:calculate|compute|evaluate|what is|what's|whats|how much is)\\s+/i, '')
+    .replace(/^(?:calculate|compute|evaluate|what is|what's|whats|how much is)\s+/i, '')
     .replace(/[?=]+$/g, '')
-    .replace(/\\b(plus|added to)\\b/gi, '+')
-    .replace(/\\b(minus|subtract)\\b/gi, '-')
-    .replace(/\\b(times|multiplied by)\\b/gi, '*')
-    .replace(/\\b(divided by|over)\\b/gi, '/')
-    .replace(/\\b(squared)\\b/gi, '^2')
-    .replace(/\\b(cubed)\\b/gi, '^3')
+    .replace(/\b(plus|added to)\b/gi, '+')
+    .replace(/\b(minus|subtract)\b/gi, '-')
+    .replace(/\b(times|multiplied by)\b/gi, '*')
+    .replace(/\b(divided by|over)\b/gi, '/')
+    .replace(/\b(squared)\b/gi, '^2')
+    .replace(/\b(cubed)\b/gi, '^3')
     .trim()
   if (!expression || expression.length > 500 || !/[0-9]/.test(expression)) return null
-  if (!/^[0-9a-zA-Z_\\s()+\\-*/%^.,!]+$/.test(expression)) return null
-  if (/\\b(?:import|createUnit|evaluate|parse|simplify|derivative|help|version|config|typed|reviver|replacer)\\b/i.test(expression)) return null
+  if (!/^[0-9a-zA-Z_\s()+\-*/%^.,!]+$/.test(expression)) return null
+  if (/\b(?:import|createUnit|evaluate|parse|simplify|derivative|help|version|config|typed|reviver|replacer)\b/i.test(expression)) return null
   try {
     const result = preciseMath.evaluate(expression)
     if (result && typeof result.toString === 'function' && (preciseMath.isBigNumber(result) || typeof result === 'number')) {
