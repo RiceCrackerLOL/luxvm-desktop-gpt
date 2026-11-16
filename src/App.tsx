@@ -1279,7 +1279,7 @@ export default function App() {
     [data-luxvm-theme="dark"] input,
     [data-luxvm-theme="dark"] textarea,
     [data-luxvm-theme="dark"] select { background-color: #202328 !important; color: #F5F6F7 !important; border-color: #3B4149 !important; }
-    [data-luxvm-theme="dark"] div:not([data-luxvm-chess]):not([data-luxvm-chess] *) { color: #F5F6F7 !important; border-color: #3B4149 !important; }
+    [data-luxvm-theme="dark"] *:not([data-luxvm-chess]):not([data-luxvm-chess] *) { color: #F5F6F7 !important; border-color: #3B4149 !important; }
     [data-luxvm-theme="dark"] button { color: #FFFFFF !important; border-color: #414852 !important; }
     [data-luxvm-theme="dark"] button:not([data-theme-choice]) { background-color: #343A42 !important; }
     [data-luxvm-theme="dark"] [data-theme-choice][aria-pressed="true"] { background: #3B4652 !important; border-color: #9BAFC2 !important; }
