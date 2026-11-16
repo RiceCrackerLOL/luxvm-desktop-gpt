@@ -596,8 +596,12 @@ export default function App() {
   })
 
   const [activeSessionId, setActiveSessionId] = useState<string>(() => {
-    const savedId = localStorage.getItem(ACTIVE_SESSION_KEY)
-    if (savedId && sessions.some((s) => s.id === savedId)) return savedId
+    try {
+      const savedId = localStorage.getItem(ACTIVE_SESSION_KEY)
+      if (savedId && sessions.some((s) => s.id === savedId)) return savedId
+    } catch (error) {
+      console.warn('Could not read the active chat from browser storage:', error)
+    }
     return sessions[0]?.id || 'default-session'
   })
 
@@ -613,7 +617,11 @@ export default function App() {
   }, [sessions])
 
   useEffect(() => {
-    localStorage.setItem(ACTIVE_SESSION_KEY, activeSessionId)
+    try {
+      localStorage.setItem(ACTIVE_SESSION_KEY, activeSessionId)
+    } catch (error) {
+      console.warn('Could not save the active chat to browser storage:', error)
+    }
   }, [activeSessionId])
 
   useEffect(() => {
@@ -1373,6 +1381,7 @@ export default function App() {
               OpenRouter API Key, Models & Personality Memory
             </h3>
 
+            {window.luxvmUpdater && (
             <div style={{ ...styles.fieldRow, padding: '12px', border: '1px solid #41423D', borderRadius: '8px', background: '#20211E' }}>
               <label style={styles.label}>LuxVM Updates</label>
               <div style={{ fontSize: '12px', color: '#C6C2B8', marginBottom: '10px' }} role="status">{updateStatus}</div>
@@ -1392,7 +1401,7 @@ export default function App() {
               </div>
               <span style={{ display: 'block', fontSize: '11px', color: '#9B988F', marginTop: '8px' }}>Updates download from the public LuxVM releases repository. Your chats and settings remain stored locally.</span>
             </div>
-
+            )}
 
             <div style={styles.fieldRow}>
               <label style={styles.label}>Global OpenRouter API Key (sk-or-...)</label>
