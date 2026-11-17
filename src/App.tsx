@@ -143,13 +143,13 @@ const preciseMath = create(all, { number: 'BigNumber', precision: 64 })
 type ResponseTier = 'quick' | 'standard' | 'deep'
 
 function isMathPrompt(prompt: string): boolean {
-  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed|square root|sqrt|percent|percentage|factorial|logarithm|log|ln|sine|cosine|tangent|permutation|combination|summation|series|vector)\b|\d\s*(?:\^|\*\*|×|÷|\/|\+|-|!)\s*\d?/i.test(prompt)
+  return /\b(math|mathematics|calculate|compute|equation|solve|proof|prove|derivative|differentiate|integral|integrate|limit|matrix|determinant|eigenvalue|probability|statistics|calculus|algebra|geometry|trigonometry|factor|simplify|polynomial|exponent|exponential|power|raised to|squared|cubed|square root|sqrt|percent|percentage|factorial|logarithm|log|ln|sine|cosine|tangent|permutation|combination|summation|series|vector)\b|\d\s*(?:\^\s*\{[^}]+\}|\^|\*\*|×|÷|\/|\+|-|!)\s*\d?|[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼]/i.test(prompt)
 }
 
 function classifyResponseTier(prompt: string): ResponseTier {
   const value = prompt.trim().toLowerCase()
   const complexSignals = /\b(prove|derive|debug|architect|design|compare|evaluate|analy[sz]e|step[- ]by[- ]step|multi[- ]step|in depth|deep dive|optimi[sz]e|algorithm|proof|theorem|differential|integral|matrix|recursion|trade-?offs|raised to|exponent|exponential|power|factorial|summation|series)\b/
-  const mathematicalExpression = /\d\s*(?:\^|\*\*|×|÷|\/|\+|-)\s*\d/.test(value)
+  const mathematicalExpression = /\d\s*(?:\^\s*\{[^}]+\}|\^|\*\*|×|÷|\/|\+|-)\s*\d?|[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼]/.test(value)
   if (isMathPrompt(value) && (complexSignals.test(value) || mathematicalExpression || value.length > 120)) return 'deep'
   if (complexSignals.test(value) || value.length > 650 || (value.match(/\n/g) || []).length >= 3) return 'deep'
   if (/^(what is|what's|whats|who is|when did|where is|define|how many|how much)\b/.test(value) && value.length < 140) return 'quick'
@@ -181,6 +181,128 @@ function getDirectCalculatorAnswer(prompt: string): string | null {
     }
   } catch {}
   return null
+}
+
+
+const SAGEMATHCELL_SERVICE_URL = 'https://sagecell.sagemath.org/service'
+
+function buildKeylessSageCode(question: string): string | null {
+  let q = question.trim().replace(/^\$+|\$+$/g, '').replace(/^\\\(|\\\)$/g, '').replace(/\\left|\\right/g, '').replace(/\\cdot/g, '*').replace(/\\times/g, '*').replace(/\\div/g, '/').replace(/\\pi/g, 'pi').replace(/\\sqrt\{([^{}]+)\}/g, 'sqrt($1)').replace(/\^\{([^{}]+)\}/g, '^($1)').replace(/[{}]/g, '').replace(/[?=]+$/g, '').trim()
+  let op = 'evaluate', variable = 'x'
+  const patterns: Array<[RegExp, string]> = [
+    [/^(?:differentiate|derivative of)\s+(.+?)(?:\s+(?:with respect to|w\.r\.t\.?)\s+([a-z]))?$/i, 'differentiate'],
+    [/^(?:integrate|integral of)\s+(.+?)(?:\s+with respect to\s+([a-z]))?$/i, 'integrate'],
+    [/^(?:factor|factorise|factorize)\s+(.+)$/i, 'factor'],
+    [/^simplify\s+(.+)$/i, 'simplify'],
+    [/^solve\s+(.+?)(?:\s+for\s+([a-z]))?$/i, 'solve'],
+    [/^(?:calculate|compute|evaluate|what is|what's|whats)\s+(.+)$/i, 'evaluate'],
+  ]
+  for (const [pattern, operation] of patterns) { const m = q.match(pattern); if (m) { op = operation; q = m[1].trim(); if (m[2]) variable = m[2].toLowerCase(); break } }
+  if (!q || q.length > 2000 || !/^[a-zA-Z0-9_+\-*/^().,!\s]+$/.test(q) || /\b(import|exec|eval|open|input|while|for|lambda|class|def|print|system|globals|locals)\b|__/.test(q)) return null
+  if (op === 'differentiate') return "var('" + variable + "'); print(diff(" + q + ', ' + variable + '))'
+  if (op === 'integrate') return "var('" + variable + "'); print(integrate(" + q + ', ' + variable + '))'
+  if (op === 'factor') return 'print(factor(' + q + '))'
+  if (op === 'simplify') return 'print((' + q + ').simplify_full())'
+  if (op === 'solve') return "var('" + variable + "'); print(solve(" + q + ', ' + variable + '))'
+  return 'print(' + q + ')'
+}
+
+async function executeSageMathCode(code: string, signal: AbortSignal): Promise<string> {
+  const response = await fetch(SAGEMATHCELL_SERVICE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, credentials: 'omit', signal, body: JSON.stringify({ code }) })
+  const raw = await response.text()
+  if (!response.ok) throw new Error('SageMathCell is unavailable (HTTP ' + response.status + '). Please try again.')
+  let result: any; try { result = JSON.parse(raw) } catch { throw new Error('SageMathCell returned an unreadable result.') }
+  if (result?.success !== true) { const detail = String(result?.stderr || result?.error || '').trim(); throw new Error(detail ? 'SageMathCell could not calculate this: ' + detail.slice(0, 400) : 'SageMathCell could not calculate this expression.') }
+  const answer = String(result?.stdout || '').trim(); if (!answer) throw new Error('SageMathCell returned no final answer.'); return answer
+}
+
+async function solveWithSageMathCell(
+  question: string,
+  apiKey: string,
+  model: string,
+  headers: (key?: string) => Record<string, string>,
+  signal: AbortSignal,
+): Promise<string> {
+  const codegenResponse = await fetch(OPENROUTER_CHAT_URL, {
+    method: 'POST',
+    headers: headers(apiKey),
+    signal,
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      max_tokens: 1800,
+      messages: [
+        {
+          role: 'system',
+          content: [
+            'You convert a user mathematical question into executable SageMath code for SageMathCell.',
+            'Return ONLY SageMath code. Do not use Markdown fences, prose, explanations, derivations, or solution steps.',
+            'The code must compute the correct result and print ONLY the final answer using print(...). Do not print intermediate values.',
+            'Use exact symbolic arithmetic whenever possible; use QQ, ZZ, SR, solve, limit, diff, integrate, matrix, factor, etc. as appropriate.',
+            'For numerical answers, use sufficient precision and label approximations clearly.',
+            'For word problems, define variables, encode the stated conditions, solve them, and print only the requested answer with units when applicable.',
+            'If the question is ambiguous or lacks necessary information, print a short statement identifying exactly what is missing.',
+            'Do not assume unstated values or silently choose among multiple valid solutions. If multiple solutions are requested, print the complete answer set.',
+            'Do not import modules. Do not access files, environment variables, networks, processes, or system resources.',
+            'Do not use open, exec, eval, compile, input, interact, while, or dunder attributes.',
+            'Avoid unbounded computation. Use SageMath built-ins and bounded calculations.',
+            'The final output must be suitable to show directly to the user without any explanation.',
+          ].join(' '),
+        },
+        {
+          role: 'user',
+          content: 'Convert this problem into SageMath code and calculate its final answer only:\n\n' + question,
+        },
+      ],
+    }),
+  })
+
+  const codegenText = await codegenResponse.text()
+  if (!codegenResponse.ok) throw new Error(getOpenRouterError(codegenText, codegenResponse.status))
+  const codegenData = JSON.parse(codegenText)
+  let sageCode = extractOpenRouterText(codegenData, 'The math model did not return SageMath code.')
+    .replace(/^\x60{3}(?:sage|python)?\s*/i, '')
+    .replace(/\s*\x60{3}$/, '')
+    .trim()
+
+  if (!sageCode || sageCode.length > 8000) {
+    throw new Error('The math model did not produce valid SageMath code. Please rephrase the problem.')
+  }
+  if (!/\bprint\s*\(/.test(sageCode)) {
+    throw new Error('The math model did not provide a final-answer output. Please try again.')
+  }
+  if (/\b(import|exec|eval|compile|open|input|interact|while)\b|__|(?:os|sys|subprocess|socket|requests|urllib|pathlib)\s*\./i.test(sageCode)) {
+    throw new Error('The generated calculation was blocked by LuxVM safety checks. Please rephrase the problem.')
+  }
+
+  const calculationResponse = await fetch(SAGEMATHCELL_SERVICE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    credentials: 'omit',
+    signal,
+    body: JSON.stringify({ code: sageCode }),
+  })
+  const calculationText = await calculationResponse.text()
+  if (!calculationResponse.ok) {
+    throw new Error('SageMathCell could not calculate this problem (HTTP ' + calculationResponse.status + '). Please try again shortly.')
+  }
+
+  let calculation: any
+  try {
+    calculation = JSON.parse(calculationText)
+  } catch {
+    throw new Error('SageMathCell returned an unreadable result. Please try again.')
+  }
+  if (calculation?.success !== true) {
+    const detail = String(calculation?.stderr || calculation?.error || '').trim()
+    throw new Error(detail
+      ? 'SageMathCell could not solve this problem: ' + detail.slice(0, 500)
+      : 'SageMathCell could not solve this problem. Please check the question and try again.')
+  }
+
+  const answer = String(calculation?.stdout || '').trim()
+  if (!answer) throw new Error('SageMathCell completed the calculation but returned no final answer. Please try again.')
+  return answer
 }
 
 function getCalculatorContext(prompt: string): string {
@@ -731,31 +853,56 @@ export default function App() {
     setChatInput('')
     setIsChatLoading(true)
 
-    const directCalculatorAnswer = getDirectCalculatorAnswer(trimmed)
-    if (directCalculatorAnswer !== null && isMathPrompt(trimmed)) {
-      setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: directCalculatorAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
-      setIsChatLoading(false)
-      return
-    }
-
     const controller = new AbortController()
     const responseTierForTimeout = classifyResponseTier(trimmed)
     const requestTimeoutMs = responseTierForTimeout === 'deep' ? 10 * 60 * 1000 : 90 * 1000
     const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs)
 
     try {
-      if (!apiKey.trim()) {
-        throw new Error('Missing OpenRouter API Key. Click  Settings in the top right to paste it.')
+      const mathQuestion = isMathPrompt(trimmed)
+      if (mathQuestion && !apiKey.trim()) {
+        const sageCode = buildKeylessSageCode(trimmed)
+        if (!sageCode) throw new Error('This maths question needs natural-language interpretation. Expressions, powers, derivatives, integrals, factoring and equations can be calculated without an API key. Add an API key for full word-problem interpretation.')
+        const finalAnswer = await executeSageMathCode(sageCode, controller.signal)
+        setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: finalAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
+        return
+      }
+      if (!apiKey.trim()) throw new Error('Missing OpenRouter API Key. Click Settings in the top right to paste it.')
+      const chatMemory = updateSessionMemory(currentSession.memory, updatedMessages)
+      const responseTier = classifyResponseTier(trimmed)
+      if (mathQuestion) {
+        const finalAnswer = await solveWithSageMathCell(
+          trimmed,
+          apiKey.trim(),
+          models.math.trim() || models.chat.trim(),
+          openRouterHeaders,
+          controller.signal,
+        )
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === currentSession.id
+              ? {
+                  ...s,
+                  messages: [
+                    ...s.messages,
+                    {
+                      id: String(Date.now() + 1),
+                      role: 'assistant',
+                      content: finalAnswer,
+                      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    },
+                  ],
+                  updatedAt: Date.now(),
+                }
+              : s
+          )
+        )
+        return
       }
 
-      const chatMemory = updateSessionMemory(currentSession.memory, updatedMessages)
-      const calculatorContext = getCalculatorContext(trimmed)
-      const responseTier = classifyResponseTier(trimmed)
-      const mathQuestion = isMathPrompt(trimmed)
       const outboundMessages = [
         ...(systemPrompt.trim() ? [{ role: 'system' as const, content: systemPrompt.trim() }] : []),
         ...(chatMemory ? [{ role: 'system' as const, content: 'Memory saved for this chat only:\n' + chatMemory }] : []),
-        ...(calculatorContext ? [{ role: 'system' as const, content: calculatorContext }] : []),
         { role: 'system' as const, content: mathQuestion ? 'Mathematics mode: solve accurately, verify intermediate calculations, check units and edge cases, and distinguish exact answers from numerical approximations. Use concise working for routine problems and a clear rigorous derivation for difficult ones. Never invent a calculator result.' : responseTier === 'quick' ? 'This is a straightforward request. Answer accurately and directly in the fewest useful words. Do not over-explain.' : responseTier === 'deep' ? 'This is a demanding request. Take the time needed to reason carefully, verify steps, and explain the important details.' : 'Use a balanced level of detail appropriate to the request.' },
         ...updatedMessages
           .filter((m) => m.role === 'user' || m.role === 'assistant')
