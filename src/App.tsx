@@ -44,6 +44,7 @@ interface GeneratedImage {
   prompt: string
   url: string
   timestamp: string
+  mode?: 'generate' | 'edit'
 }
 
 const SESSIONS_KEY = 'luxvm_or_sessions_v2'
@@ -683,6 +684,9 @@ export default function App() {
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
     models: DEFAULT_MODELS,
     theme: 'light' as 'light' | 'dark',
+    imageProvider: 'openrouter' as 'openrouter' | 'cloudflare',
+    cloudflareWorkerUrl: '',
+    cloudflareAccessKey: '',
   })
 
   const [apiKey, setApiKey] = useState<string>(initialSettings.apiKey || '')
@@ -694,6 +698,9 @@ export default function App() {
     ...(initialSettings.models || {}),
   })
   const [theme, setTheme] = useState<'light' | 'dark'>(initialSettings.theme === 'dark' ? 'dark' : 'light')
+  const [imageProvider, setImageProvider] = useState<'openrouter' | 'cloudflare'>(initialSettings.imageProvider === 'cloudflare' ? 'cloudflare' : 'openrouter')
+  const [cloudflareWorkerUrl, setCloudflareWorkerUrl] = useState<string>(initialSettings.cloudflareWorkerUrl || '')
+  const [cloudflareAccessKey, setCloudflareAccessKey] = useState<string>(initialSettings.cloudflareAccessKey || '')
 
   useEffect(() => {
     safeSetStorage(SETTINGS_KEY, {
@@ -702,8 +709,11 @@ export default function App() {
       models,
       githubRepo: githubRepo.trim(),
       theme,
+      imageProvider,
+      cloudflareWorkerUrl: cloudflareWorkerUrl.trim(),
+      cloudflareAccessKey: cloudflareAccessKey.trim(),
     })
-  }, [apiKey, systemPrompt, models, githubRepo, theme])
+  }, [apiKey, systemPrompt, models, githubRepo, theme, imageProvider, cloudflareWorkerUrl, cloudflareAccessKey])
 
   const openRouterHeaders = (key = apiKey) => ({
     'Content-Type': 'application/json',
@@ -1397,6 +1407,35 @@ export default function App() {
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([])
   const [isImageLoading, setIsImageLoading] = useState(false)
   const [imageError, setImageError] = useState('')
+  const [referenceImage, setReferenceImage] = useState<{ url: string; name: string } | null>(null)
+  const [keepOriginalElements, setKeepOriginalElements] = useState(true)
+
+  const handleReferenceUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setImageError('Choose a valid image file.')
+      event.target.value = ''
+      return
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      setImageError('Reference images must be 12 MB or smaller.')
+      event.target.value = ''
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setReferenceImage({ url: reader.result, name: file.name })
+        setImageError('')
+      } else {
+        setImageError('LuxVM could not read that image. Try another file.')
+      }
+    }
+    reader.onerror = () => setImageError('LuxVM could not read that image. Try another file.')
+    reader.readAsDataURL(file)
+    event.target.value = ''
+  }
 
   const generateImage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -1406,32 +1445,56 @@ export default function App() {
     setImageError('')
 
     try {
-      if (!apiKey.trim()) throw new Error('Please enter your OpenRouter API key in  Settings.')
-
-      const res = await fetch(OPENROUTER_IMAGE_URL, {
-        method: 'POST',
-        headers: openRouterHeaders(),
-        body: JSON.stringify({
-          model: models.image,
-          prompt: imagePrompt.trim(),
-          aspect_ratio: aspectRatio,
-        }),
-      })
-
-      const rawText = await res.text()
-      if (!res.ok) {
-        throw new Error(getOpenRouterError(rawText, res.status))
-      }
-
-      const data = JSON.parse(rawText)
-      const item = data?.data?.[0]
+      const prompt = referenceImage && keepOriginalElements
+        ? `${imagePrompt.trim()} Preserve the original subject, identity, and important visual elements from the reference image unless the requested changes explicitly require changing them.`
+        : imagePrompt.trim()
       let imgUrl = ''
-      if (item?.b64_json) {
-        imgUrl = `data:image/png;base64,${item.b64_json}`
-      } else if (item?.url) {
-        imgUrl = item.url
+      if (imageProvider === 'cloudflare') {
+        if (!cloudflareWorkerUrl.trim()) throw new Error('Add your Cloudflare Worker URL in Settings before using FLUX.2.')
+        if (!cloudflareAccessKey.trim()) throw new Error('Add your Cloudflare Worker access key in Settings before using FLUX.2.')
+        const [ratioWidth, ratioHeight] = aspectRatio.split(':').map(Number)
+        const width = ratioWidth >= ratioHeight ? 1024 : Math.max(256, Math.round(1024 * ratioWidth / ratioHeight))
+        const height = ratioHeight >= ratioWidth ? 1024 : Math.max(256, Math.round(1024 * ratioHeight / ratioWidth))
+        let cloudflareReference = referenceImage?.url || null
+        if (cloudflareReference) {
+          const imageBlob = await (await fetch(cloudflareReference)).blob()
+          const bitmap = await createImageBitmap(imageBlob)
+          const scale = Math.min(1, 511 / Math.max(bitmap.width, bitmap.height))
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+          canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+          const context = canvas.getContext('2d')
+          if (!context) throw new Error('Could not prepare the reference image for FLUX.2.')
+          context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+          bitmap.close()
+          cloudflareReference = canvas.toDataURL('image/png')
+        }
+        const response = await fetch(cloudflareWorkerUrl.trim(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cloudflareAccessKey.trim()}` },
+          body: JSON.stringify({ prompt, width, height, referenceImage: cloudflareReference }),
+        })
+        const raw = await response.text()
+        if (!response.ok) {
+          let detail = raw
+          try { detail = JSON.parse(raw).error || raw } catch { /* keep response text */ }
+          throw new Error(`Cloudflare FLUX.2 failed (${response.status}): ${detail}`)
+        }
+        const result = JSON.parse(raw)
+        if (!result.image) throw new Error('Cloudflare returned no image data.')
+        imgUrl = result.image.startsWith('data:') ? result.image : `data:image/png;base64,${result.image}`
       } else {
-        throw new Error('No image data returned by model.')
+        if (!apiKey.trim()) throw new Error('Please enter your OpenRouter API key in Settings.')
+        const requestBody: Record<string, any> = { model: models.image, prompt, aspect_ratio: aspectRatio }
+        if (referenceImage) requestBody.input_references = [{ type: 'image_url', image_url: { url: referenceImage.url } }]
+        const res = await fetch(OPENROUTER_IMAGE_URL, { method: 'POST', headers: openRouterHeaders(), body: JSON.stringify(requestBody) })
+        const rawText = await res.text()
+        if (!res.ok) throw new Error(getOpenRouterError(rawText, res.status))
+        const data = JSON.parse(rawText)
+        const item = data?.data?.[0]
+        if (item?.b64_json) imgUrl = `data:image/png;base64,${item.b64_json}`
+        else if (item?.url) imgUrl = item.url
+        else throw new Error('No image data returned by model.')
       }
 
       setGeneratedImages((prev) => [
@@ -1440,6 +1503,7 @@ export default function App() {
           prompt: imagePrompt.trim(),
           url: imgUrl,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          mode: referenceImage ? 'edit' : 'generate',
         },
         ...prev,
       ])
@@ -1701,6 +1765,18 @@ export default function App() {
               </div>
             </div>
 
+            <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
+              <label style={styles.label}>Image generation provider</label>
+              <select style={styles.input} value={imageProvider} onChange={(e) => setImageProvider(e.target.value as 'openrouter' | 'cloudflare')}>
+                <option value="openrouter">OpenRouter</option>
+                <option value="cloudflare">Cloudflare FLUX.2 Klein 4B</option>
+              </select>
+              <label style={{ ...styles.label, marginTop: '10px' }}>Cloudflare Worker URL</label>
+              <input style={styles.input} value={cloudflareWorkerUrl} onChange={(e) => setCloudflareWorkerUrl(e.target.value)} placeholder="https://luxvm-flux.your-subdomain.workers.dev" />
+              <label style={{ ...styles.label, marginTop: '10px' }}>Cloudflare Worker access key</label>
+              <input style={styles.input} type="password" value={cloudflareAccessKey} onChange={(e) => setCloudflareAccessKey(e.target.value)} placeholder="Your private Worker access key" autoComplete="off" />
+              <span style={{ fontSize: '11px', color: '#777168' }}>The Cloudflare API token stays on the Worker and is never embedded in LuxVM.</span>
+            </div>
             <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
               <label style={styles.label}>Permanent Personality / System Prompt</label>
               <textarea
@@ -2008,43 +2084,71 @@ export default function App() {
 
         {activeTab === 'image' && (
           <div style={styles.imageContainer}>
-            <form data-luxvm-surface onSubmit={generateImage} style={styles.imageControls}>
-              <input
-                style={{ ...styles.chatInput, flex: 1 }}
-                value={imagePrompt}
-                onChange={(e) => setImagePrompt(e.target.value)}
-                placeholder="Describe the image you want to create..."
-                disabled={isImageLoading}
-              />
-              <select
-                style={{ ...styles.input, width: '110px' }}
-                value={aspectRatio}
-                onChange={(e) => setAspectRatio(e.target.value)}
-              >
-                <option value="1:1">1:1 Square</option>
-                <option value="16:9">16:9 Wide</option>
-                <option value="9:16">9:16 Tall</option>
-                <option value="4:3">4:3 Photo</option>
-              </select>
-              <button
-                type="submit"
-                style={styles.sendBtn}
-                disabled={isImageLoading || !imagePrompt.trim()}
-              >
-                {isImageLoading ? 'Generating...' : ' Generate'}
-              </button>
+            <div style={{ padding: '10px 20px 0', fontSize: '12px', color: '#777168' }}>Image provider: <strong>{imageProvider === 'cloudflare' ? 'Cloudflare FLUX.2 Klein 4B' : 'OpenRouter'}</strong></div>
+            <form data-luxvm-surface onSubmit={generateImage} style={{ ...styles.imageControls, flexDirection: 'column', alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <label style={{ ...styles.secondaryBtn, display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                  Upload reference image
+                  <input type="file" accept="image/*" onChange={handleReferenceUpload} disabled={isImageLoading} style={{ display: 'none' }} />
+                </label>
+                <span style={{ fontSize: '12px', color: '#777168' }}>Or choose “Use as reference” on any image below.</span>
+                {referenceImage && (
+                  <button type="button" onClick={() => setReferenceImage(null)} style={styles.secondaryBtn} disabled={isImageLoading}>
+                    Remove reference
+                  </button>
+                )}
+              </div>
+              {referenceImage && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', border: '1px solid #D8D2C7', borderRadius: '8px', maxWidth: '520px' }}>
+                  <img src={referenceImage.url} alt="Selected reference" style={{ width: '76px', height: '76px', objectFit: 'cover', borderRadius: '6px' }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600 }}>Editing reference</div>
+                    <div style={{ fontSize: '11px', color: '#777168', overflowWrap: 'anywhere' }}>{referenceImage.name}</div>
+                  </div>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  style={{ ...styles.chatInput, flex: 1, minWidth: '220px', border: '1px solid #D8D2C7', borderRadius: '8px' }}
+                  value={imagePrompt}
+                  onChange={(e) => setImagePrompt(e.target.value)}
+                  placeholder={referenceImage ? 'Describe what you want changed in this image...' : 'Describe the image you want to create...'}
+                  disabled={isImageLoading}
+                />
+                <select
+                  aria-label="Image aspect ratio"
+                  style={{ ...styles.input, width: '125px' }}
+                  value={aspectRatio}
+                  onChange={(e) => setAspectRatio(e.target.value)}
+                  disabled={isImageLoading}
+                >
+                  <option value="1:1">1:1 Square</option>
+                  <option value="16:9">16:9 Wide</option>
+                  <option value="9:16">9:16 Tall</option>
+                  <option value="4:3">4:3 Photo</option>
+                </select>
+                <button type="submit" style={styles.sendBtn} disabled={isImageLoading || !imagePrompt.trim()}>
+                  {isImageLoading ? (referenceImage ? 'Editing...' : 'Generating...') : (referenceImage ? 'Edit image' : 'Generate')}
+                </button>
+              </div>
+              {referenceImage && (
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#57534D', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={keepOriginalElements} onChange={(e) => setKeepOriginalElements(e.target.checked)} disabled={isImageLoading} />
+                  Keep original elements unless my prompt asks to change them
+                </label>
+              )}
             </form>
 
             {imageError && (
-              <div style={{ padding: '12px 20px', backgroundColor: '#7f1d1d', fontSize: '13px' }}>
+              <div role="alert" style={{ padding: '12px 20px', backgroundColor: '#7f1d1d', color: '#FFFFFF', fontSize: '13px' }}>
                 {imageError}
               </div>
             )}
 
             <div data-luxvm-surface style={styles.imageGallery}>
               {generatedImages.length === 0 && !isImageLoading && (
-                <div style={{ color: '#777168', textAlign: 'center', marginTop: '60px' }}>
-                  Enter a prompt above to generate images using {models.image}
+                <div style={{ color: '#777168', textAlign: 'center', marginTop: '60px', gridColumn: '1 / -1' }}>
+                  Upload a reference to edit an image, or enter a prompt to create one with {models.image}.
                 </div>
               )}
               {generatedImages.map((img) => (
@@ -2052,13 +2156,12 @@ export default function App() {
                   <img src={img.url} alt={img.prompt} style={styles.generatedImg} />
                   <div style={styles.imageCardFooter}>
                     <span style={{ fontSize: '12px', color: '#57534D', flex: 1 }}>{img.prompt}</span>
-                    <a
-                      href={img.url}
-                      download={`luxvm-image-${img.id}.png`}
-                      style={{ ...styles.secondaryBtn, textDecoration: 'none' }}
-                    >
-                       Download
+                    <a href={img.url} download={`luxvm-image-${img.id}.png`} style={{ ...styles.secondaryBtn, textDecoration: 'none' }}>
+                      Download
                     </a>
+                    <button type="button" onClick={() => setReferenceImage({ url: img.url, name: `LuxVM image ${img.id}` })} style={styles.secondaryBtn} disabled={isImageLoading}>
+                      Use as reference
+                    </button>
                   </div>
                 </div>
               ))}
