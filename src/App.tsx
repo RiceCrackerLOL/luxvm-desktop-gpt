@@ -824,6 +824,7 @@ export default function App() {
     setSessions((prev) => [newSession, ...prev])
     setActiveSessionId(newSession.id)
     setActiveTab('chat')
+    setComingSoonPage('')
   }
 
   const deleteSession = (id: string, e: React.MouseEvent) => {
@@ -1651,6 +1652,8 @@ export default function App() {
           <button type="button" title="Chess Bot" aria-label="Chess Bot" onClick={() => setActiveTab('chess')} style={{ ...styles.navBtn, ...(activeTab === 'chess' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>♙</span>{!sidebarCollapsed && 'Chess Bot'}</button>
           <button type="button" title="Images" aria-label="Images" onClick={() => { setComingSoonPage(''); setActiveTab('image') }} style={{ ...styles.navBtn, ...(activeTab === 'image' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>▧</span>{!sidebarCollapsed && 'Images'}</button>
           <button type="button" title="Explore" aria-label="Explore" onClick={() => setComingSoonPage('Explore')} style={styles.navBtn}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'Explore'}</button>
+          <button type="button" title="Apps" aria-label="Apps" onClick={() => setComingSoonPage('Apps')} style={styles.navBtn}><span style={styles.navIcon}>▦</span>{!sidebarCollapsed && 'Apps'}</button>
+          <button type="button" title="GPTs" aria-label="GPTs" onClick={() => setComingSoonPage('GPTs')} style={styles.navBtn}><span style={styles.navIcon}>✧</span>{!sidebarCollapsed && 'GPTs'}</button>
           <button type="button" title="Scheduled tasks" aria-label="Scheduled tasks" onClick={() => setComingSoonPage('Scheduled tasks')} style={styles.navBtn}><span style={styles.navIcon}>◷</span>{!sidebarCollapsed && 'Scheduled tasks'}</button>
           <button type="button" title="Library" aria-label="Library" onClick={() => setComingSoonPage('Library')} style={styles.navBtn}><span style={styles.navIcon}>▤</span>{!sidebarCollapsed && 'Library'}</button>
           <button type="button" title="Plugins" aria-label="Plugins" onClick={() => setComingSoonPage('Plugins')} style={styles.navBtn}><span style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Plugins'}</button>
@@ -1662,7 +1665,7 @@ export default function App() {
           <div style={styles.sidebarHeader}><button type="button" onClick={createNewChat} style={styles.newChatBtn}>+ New Chat</button></div>
           <div style={styles.sessionList}>
             {sessions.map((session) => (
-              <div key={session.id} onClick={() => { setActiveSessionId(session.id); setActiveTab('chat') }} style={{ ...styles.sessionItem, backgroundColor: activeTab === 'chat' && session.id === activeSessionId ? '#E5E1D8' : 'transparent' }}>
+              <div key={session.id} onClick={() => { setActiveSessionId(session.id); setActiveTab('chat'); setComingSoonPage('') }} style={{ ...styles.sessionItem, backgroundColor: activeTab === 'chat' && session.id === activeSessionId ? '#E5E1D8' : 'transparent' }}>
                 <span style={styles.sessionTitle}>{session.title}</span>
                 <button type="button" onClick={(e) => deleteSession(session.id, e)} style={styles.deleteBtn} title="Delete Chat">×</button>
               </div>
