@@ -1702,7 +1702,7 @@ export default function App() {
             </strong>
             {activeTab === 'chat' ? (
               <select aria-label="Chat model" value={models.chat} onChange={(e) => setModels((current) => ({ ...current, chat: e.target.value }))} style={{ ...styles.input, width: 'auto', maxWidth: 'min(42vw, 280px)', padding: '7px 10px', borderRadius: '9px', fontSize: '12px' }}>
-                <option value={models.chat}>{models.chat}</option>
+                {[...new Set([models.chat, DEFAULT_MODELS.chat, DEFAULT_MODELS.voice, DEFAULT_MODELS.codex, DEFAULT_MODELS.image].filter(Boolean))].map((model) => <option key={model} value={model}>{model}</option>)}
               </select>
             ) : <span style={styles.badge}>{models[activeTab]}</span>}
           </div>
