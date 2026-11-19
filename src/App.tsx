@@ -2985,3 +2985,29 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 12px',
   },
 }
+
+
+    /* True-black dark theme: all primary surfaces use pure black. */
+    [data-luxvm-theme="dark"] {
+      --lux-sidebar:#000000; --lux-main:#000000; --lux-panel:#000000;
+      --lux-text:#eeeeee; --lux-muted:#a1a1a1; --lux-border:#292929;
+      --lux-hover:#171717; --lux-user:#171717; --lux-accent:#eeeeee;
+      background:#000000 !important; color:#eeeeee !important; color-scheme:dark;
+    }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar],
+    [data-luxvm-theme="dark"] [data-luxvm-main],
+    [data-luxvm-theme="dark"] [data-luxvm-main] > header,
+    [data-luxvm-theme="dark"] [data-luxvm-settings],
+    [data-luxvm-theme="dark"] [data-luxvm-surface],
+    [data-luxvm-theme="dark"] .luxvm-search-panel,
+    [data-luxvm-theme="dark"] [data-luxvm-chat-composer],
+    [data-luxvm-theme="dark"] .luxvm-suggestions button,
+    [data-luxvm-theme="dark"] [data-luxvm-coming-soon] {
+      background:#000000 !important; color:#eeeeee !important;
+      border-color:#292929 !important;
+    }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar-nav] button:hover,
+    [data-luxvm-theme="dark"] .luxvm-session-item:hover,
+    [data-luxvm-theme="dark"] .luxvm-account-button:hover {
+      background:#171717 !important;
+    }
