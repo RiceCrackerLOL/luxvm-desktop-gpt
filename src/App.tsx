@@ -1802,6 +1802,97 @@ export default function App() {
       [data-luxvm-chat-area] { padding:25px 15px 18px !important; }
     }
 
+
+    /* Single authoritative ChatGPT-neutral colour layer. Keep layout untouched. */
+    [data-luxvm-theme="light"] {
+      --lux-sidebar:#f9f9f9; --lux-main:#ffffff; --lux-panel:#ffffff;
+      --lux-text:#0d0d0d; --lux-muted:#6e6e6e; --lux-border:#e5e5e5;
+      --lux-hover:#ececec; --lux-user:#f4f4f4; --lux-accent:#0d0d0d;
+      background:#ffffff !important; color:#0d0d0d !important; color-scheme:light;
+    }
+    [data-luxvm-theme="dark"] {
+      --lux-sidebar:#171717; --lux-main:#212121; --lux-panel:#2f2f2f;
+      --lux-text:#ececec; --lux-muted:#a1a1a1; --lux-border:#3b3b3b;
+      --lux-hover:#2f2f2f; --lux-user:#303030; --lux-accent:#ececec;
+      background:#212121 !important; color:#ececec !important; color-scheme:dark;
+    }
+    [data-luxvm-theme] { color:var(--lux-text) !important; }
+    [data-luxvm-theme] [data-luxvm-sidebar] {
+      background:var(--lux-sidebar) !important; color:var(--lux-text) !important;
+      border-right:1px solid var(--lux-border) !important;
+    }
+    [data-luxvm-theme] [data-luxvm-main],
+    [data-luxvm-theme] [data-luxvm-main] > header {
+      background:var(--lux-main) !important; color:var(--lux-text) !important;
+      border-color:var(--lux-border) !important;
+    }
+    [data-luxvm-theme] [data-luxvm-settings],
+    [data-luxvm-theme] [data-luxvm-surface],
+    [data-luxvm-theme] .luxvm-search-panel,
+    [data-luxvm-theme] [data-luxvm-chat-composer],
+    [data-luxvm-theme] .luxvm-suggestions button {
+      background:var(--lux-panel) !important; color:var(--lux-text) !important;
+      border-color:var(--lux-border) !important;
+    }
+    [data-luxvm-theme] [data-luxvm-sidebar-nav] button,
+    [data-luxvm-theme] .luxvm-session-item,
+    [data-luxvm-theme] .luxvm-account-button,
+    [data-luxvm-theme] [data-luxvm-main] > header button {
+      color:var(--lux-text) !important;
+    }
+    [data-luxvm-theme] [data-luxvm-sidebar-nav] button:hover,
+    [data-luxvm-theme] .luxvm-session-item:hover,
+    [data-luxvm-theme] .luxvm-account-button:hover {
+      background:var(--lux-hover) !important;
+    }
+    [data-luxvm-theme] .luxvm-sidebar-header,
+    [data-luxvm-theme] .luxvm-sidebar-toggle,
+    [data-luxvm-theme] .luxvm-nav-icon,
+    [data-luxvm-theme] .luxvm-account-copy small,
+    [data-luxvm-theme] .luxvm-account-more,
+    [data-luxvm-theme] .luxvm-disclaimer,
+    [data-luxvm-theme] .luxvm-session-delete {
+      color:var(--lux-muted) !important;
+    }
+    [data-luxvm-theme] [data-luxvm-chat-area] [data-luxvm-message="user"] {
+      background:var(--lux-user) !important; color:var(--lux-text) !important;
+      border-color:transparent !important;
+    }
+    [data-luxvm-theme] [data-luxvm-chat-area] [data-luxvm-message="assistant"] {
+      background:transparent !important; color:var(--lux-text) !important;
+    }
+    [data-luxvm-theme] input:not([type="checkbox"]):not([type="radio"]),
+    [data-luxvm-theme] textarea,
+    [data-luxvm-theme] select {
+      background:var(--lux-panel) !important; color:var(--lux-text) !important;
+      border-color:var(--lux-border) !important;
+    }
+    [data-luxvm-theme] input::placeholder,
+    [data-luxvm-theme] textarea::placeholder { color:var(--lux-muted) !important; }
+    [data-luxvm-theme] [data-luxvm-chat-composer] input { background:transparent !important; }
+    [data-luxvm-theme] [data-luxvm-chat-composer] button[type="submit"],
+    [data-luxvm-theme] button[style*="C66A4A"],
+    [data-luxvm-theme] button[style*="c66a4a"] {
+      background:var(--lux-text) !important; color:var(--lux-main) !important;
+      border-color:transparent !important;
+    }
+    [data-luxvm-theme] .luxvm-brand-dot { background:var(--lux-muted) !important; }
+    [data-luxvm-theme] .luxvm-account-avatar {
+      background:var(--lux-hover) !important; color:var(--lux-text) !important;
+    }
+    [data-luxvm-theme] [data-luxvm-coming-soon] {
+      background:var(--lux-main) !important; color:var(--lux-text) !important;
+    }
+    [data-luxvm-theme] [data-luxvm-coming-soon] p,
+    [data-luxvm-theme] [data-luxvm-coming-soon] span { color:var(--lux-muted) !important; }
+    [data-luxvm-theme] [data-luxvm-coming-soon] button {
+      background:transparent !important; color:var(--lux-text) !important;
+      border-color:var(--lux-border) !important;
+    }
+    [data-luxvm-theme] .luxvm-disclaimer { color:var(--lux-muted) !important; }
+    [data-luxvm-theme="light"] .luxvm-disclaimer { color:#6e6e6e !important; }
+    [data-luxvm-theme="dark"] .luxvm-disclaimer { color:#a1a1a1 !important; }
+
   `}</style>
 
   return (
