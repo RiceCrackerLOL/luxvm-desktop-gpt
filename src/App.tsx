@@ -1623,7 +1623,6 @@ export default function App() {
     [data-luxvm-sidebar][data-collapsed="true"] ~ [data-luxvm-main] [data-luxvm-coming-soon] { left:64px; }
     [data-luxvm-sidebar] button { border-radius:9px !important; transition:background .16s ease,color .16s ease !important; }
     [data-luxvm-sidebar] button:hover { background:rgba(128,128,128,.13) !important; }
-    [data-luxvm-sidebar] [style*="navBtnActive"] { background:rgba(128,128,128,.16) !important; border-left:0 !important; }
     .luxvm-sidebar-brand { padding:12px 8px !important; }
     [data-luxvm-main] { min-width:0 !important; position:relative !important; }
     [data-luxvm-main] > header { min-height:58px !important; padding:10px 24px !important; box-shadow:none !important; }
@@ -1685,7 +1684,7 @@ export default function App() {
     .luxvm-session-item { display:flex; align-items:center; gap:5px; min-height:35px; padding:7px 9px !important; border-radius:8px; color:var(--lux-text) !important; cursor:pointer; }
     .luxvm-session-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px !important; color:var(--lux-text) !important; }
     .luxvm-session-delete { opacity:0; color:var(--lux-muted) !important; }
-    .luxvm-session-item:hover [style*="deleteBtn"] { opacity:1; }
+    .luxvm-session-item:hover .luxvm-session-delete { opacity:1; }
     [data-luxvm-main] { position:relative; min-width:0; min-height:0; flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--lux-main) !important; color:var(--lux-text) !important; }
     [data-luxvm-main] > header { height:58px; min-height:58px; padding:0 22px !important; display:flex; align-items:center; justify-content:space-between; background:var(--lux-main) !important; color:var(--lux-text) !important; border-bottom:1px solid var(--lux-border) !important; }
     [data-luxvm-main] > header strong { font-size:14px !important; font-weight:650 !important; letter-spacing:-.015em; }
