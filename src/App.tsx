@@ -1530,6 +1530,8 @@ export default function App() {
     [data-luxvm-theme="light"] { background: #FFFFFF !important; color: #202124 !important; color-scheme: light; }
     /* ChatGPT-inspired LuxVM workspace */
     [data-luxvm-sidebar] { width:260px !important; min-width:260px !important; padding:8px 10px !important; gap:6px !important; }
+    [data-luxvm-sidebar][data-collapsed="true"] { width:64px !important; min-width:64px !important; }
+    [data-luxvm-sidebar][data-collapsed="true"] ~ [data-luxvm-main] [data-luxvm-coming-soon] { left:64px; }
     [data-luxvm-sidebar] button { border-radius:9px !important; transition:background .16s ease,color .16s ease !important; }
     [data-luxvm-sidebar] button:hover { background:rgba(128,128,128,.13) !important; }
     [data-luxvm-sidebar] [style*="navBtnActive"] { background:rgba(128,128,128,.16) !important; border-left:0 !important; }
