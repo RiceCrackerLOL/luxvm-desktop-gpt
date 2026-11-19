@@ -1528,40 +1528,7 @@ export default function App() {
     button:active { transform: translateY(1px); }
 
     [data-luxvm-theme="light"] { background: #FFFFFF !important; color: #202124 !important; color-scheme: light; }
-    /* ChatGPT-inspired LuxVM workspace */
-    [data-luxvm-sidebar] { width:260px !important; min-width:260px !important; padding:8px 10px !important; gap:6px !important; }
-    [data-luxvm-sidebar][data-collapsed="true"] { width:64px !important; min-width:64px !important; }
-    [data-luxvm-sidebar][data-collapsed="true"] ~ [data-luxvm-main] [data-luxvm-coming-soon] { left:64px; }
-    [data-luxvm-sidebar] button { border-radius:9px !important; transition:background .16s ease,color .16s ease !important; }
-    [data-luxvm-sidebar] button:hover { background:rgba(128,128,128,.13) !important; }
-    [data-luxvm-sidebar] [style*="navBtnActive"] { background:rgba(128,128,128,.16) !important; border-left:0 !important; }
-    [data-luxvm-sidebar] [style*="sidebarBrand"] { padding:12px 8px !important; }
-    [data-luxvm-main] { min-width:0 !important; position:relative !important; }
-    [data-luxvm-main] > header { min-height:58px !important; padding:10px 24px !important; box-shadow:none !important; }
-    [data-luxvm-chat-area] { max-width:820px !important; padding:48px 28px 24px !important; gap:24px !important; }
-    [data-luxvm-message="user"] { border-radius:20px !important; padding:12px 18px !important; }
-    [data-luxvm-chat-composer] { max-width:820px !important; margin:0 auto 24px !important; padding:8px 10px 8px 14px !important; border-radius:26px !important; box-shadow:0 5px 24px rgba(0,0,0,.07) !important; align-items:center !important; gap:8px !important; }
-    [data-luxvm-chat-composer] input { min-width:0 !important; padding:13px 8px !important; font-size:15px !important; }
-    [data-luxvm-chat-composer] [data-composer-tool] { flex:0 0 36px !important; width:36px !important; height:36px !important; border:0 !important; border-radius:50% !important; background:transparent !important; color:inherit !important; cursor:pointer !important; font-size:22px !important; }
-    [data-luxvm-chat-composer] [data-composer-tool]:hover { background:rgba(128,128,128,.15) !important; }
-    [data-luxvm-chat-composer] [data-microphone] { font-size:19px !important; }
-    [data-luxvm-chat-composer] button[type="submit"] { width:38px !important; height:38px !important; min-width:38px !important; padding:0 !important; border-radius:50% !important; font-size:21px !important; }
-    [data-luxvm-coming-soon] { position:fixed; z-index:50; left:260px; top:58px; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; text-align:center; background:#fff; color:inherit; }
-    [data-luxvm-theme="dark"] [data-luxvm-coming-soon] { background:#191A1D; }
-    [data-luxvm-coming-soon] .luxvm-coming-icon { display:grid; place-items:center; width:58px; height:58px; margin-bottom:18px; border-radius:18px; background:rgba(128,128,128,.13); font-size:28px; }
-    [data-luxvm-coming-soon] h1 { margin:0 0 10px; font-size:28px; letter-spacing:-.04em; }
-    [data-luxvm-coming-soon] p { max-width:420px; color:#858990; line-height:1.6; }
-    [data-luxvm-coming-soon] span { margin-top:12px; color:#C66A4A; font-size:10px; font-weight:800; letter-spacing:.16em; }
-    [data-luxvm-coming-soon] button { margin-top:24px; border:1px solid rgba(128,128,128,.25); border-radius:20px; padding:10px 18px; background:transparent; color:inherit; cursor:pointer; }
-    @media (max-width:760px) {
-      [data-luxvm-sidebar] { width:68px !important; min-width:68px !important; }
-      [data-luxvm-sidebar] [style*="navBtn"] { padding:10px 7px !important; }
-      [data-luxvm-sidebar] [style*="navIcon"] { margin-right:0 !important; }
-      [data-luxvm-main] > header { padding:8px 12px !important; }
-      [data-luxvm-chat-area] { padding:28px 14px 18px !important; }
-      [data-luxvm-chat-composer] { margin:0 12px 14px !important; }
-      [data-luxvm-coming-soon] { left:68px; }
-    }
+
 
     [data-luxvm-theme="dark"] { color-scheme: dark; }
     [data-luxvm-theme="light"] [data-luxvm-sidebar] { background: #F7F7F8 !important; border-right: 1px solid #E5E7EB !important; }
@@ -1637,6 +1604,40 @@ export default function App() {
     [data-luxvm-theme="dark"] [data-luxvm-settings] textarea[data-personality-prompt] { background: #24272D !important; color: #F5F6F7 !important; border: 1px solid #59616D !important; }
     [data-luxvm-theme="light"] [data-luxvm-settings] label, [data-luxvm-theme="light"] [data-luxvm-settings] span { color: #41454B !important; }
     [data-luxvm-theme="dark"] [data-luxvm-settings] label, [data-luxvm-theme="dark"] [data-luxvm-settings] span { color: #C9CDD3 !important; }
+    /* ChatGPT-inspired LuxVM workspace */
+    [data-luxvm-sidebar] { width:260px !important; min-width:260px !important; padding:8px 10px !important; gap:6px !important; }
+    [data-luxvm-sidebar][data-collapsed="true"] { width:64px !important; min-width:64px !important; }
+    [data-luxvm-sidebar][data-collapsed="true"] ~ [data-luxvm-main] [data-luxvm-coming-soon] { left:64px; }
+    [data-luxvm-sidebar] button { border-radius:9px !important; transition:background .16s ease,color .16s ease !important; }
+    [data-luxvm-sidebar] button:hover { background:rgba(128,128,128,.13) !important; }
+    [data-luxvm-sidebar] [style*="navBtnActive"] { background:rgba(128,128,128,.16) !important; border-left:0 !important; }
+    [data-luxvm-sidebar] [style*="sidebarBrand"] { padding:12px 8px !important; }
+    [data-luxvm-main] { min-width:0 !important; position:relative !important; }
+    [data-luxvm-main] > header { min-height:58px !important; padding:10px 24px !important; box-shadow:none !important; }
+    [data-luxvm-chat-area] { max-width:820px !important; padding:48px 28px 24px !important; gap:24px !important; }
+    [data-luxvm-message="user"] { border-radius:20px !important; padding:12px 18px !important; }
+    [data-luxvm-chat-composer] { max-width:820px !important; margin:0 auto 24px !important; padding:8px 10px 8px 14px !important; border-radius:26px !important; box-shadow:0 5px 24px rgba(0,0,0,.07) !important; align-items:center !important; gap:8px !important; }
+    [data-luxvm-chat-composer] input { min-width:0 !important; padding:13px 8px !important; font-size:15px !important; }
+    [data-luxvm-chat-composer] [data-composer-tool] { flex:0 0 36px !important; width:36px !important; height:36px !important; border:0 !important; border-radius:50% !important; background:transparent !important; color:inherit !important; cursor:pointer !important; font-size:22px !important; }
+    [data-luxvm-chat-composer] [data-composer-tool]:hover { background:rgba(128,128,128,.15) !important; }
+    [data-luxvm-chat-composer] [data-microphone] { font-size:19px !important; }
+    [data-luxvm-chat-composer] button[type="submit"] { width:38px !important; height:38px !important; min-width:38px !important; padding:0 !important; border-radius:50% !important; font-size:21px !important; }
+    [data-luxvm-coming-soon] { position:fixed; z-index:50; left:260px; top:58px; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; text-align:center; background:#fff; color:inherit; }
+    [data-luxvm-theme="dark"] [data-luxvm-coming-soon] { background:#191A1D; }
+    [data-luxvm-coming-soon] .luxvm-coming-icon { display:grid; place-items:center; width:58px; height:58px; margin-bottom:18px; border-radius:18px; background:rgba(128,128,128,.13); font-size:28px; }
+    [data-luxvm-coming-soon] h1 { margin:0 0 10px; font-size:28px; letter-spacing:-.04em; }
+    [data-luxvm-coming-soon] p { max-width:420px; color:#858990; line-height:1.6; }
+    [data-luxvm-coming-soon] span { margin-top:12px; color:#C66A4A; font-size:10px; font-weight:800; letter-spacing:.16em; }
+    [data-luxvm-coming-soon] button { margin-top:24px; border:1px solid rgba(128,128,128,.25); border-radius:20px; padding:10px 18px; background:transparent; color:inherit; cursor:pointer; }
+    @media (max-width:760px) {
+      [data-luxvm-sidebar] { width:68px !important; min-width:68px !important; }
+      [data-luxvm-sidebar] [style*="navBtn"] { padding:10px 7px !important; }
+      [data-luxvm-sidebar] [style*="navIcon"] { margin-right:0 !important; }
+      [data-luxvm-main] > header { padding:8px 12px !important; }
+      [data-luxvm-chat-area] { padding:28px 14px 18px !important; }
+      [data-luxvm-chat-composer] { margin:0 12px 14px !important; }
+      [data-luxvm-coming-soon] { left:68px; }
+    }
   `}</style>
 
   return (
