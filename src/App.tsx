@@ -1609,8 +1609,8 @@ export default function App() {
     /* ChatGPT-inspired LuxVM workspace */
     [data-luxvm-sidebar] { width:260px !important; min-width:260px !important; padding:8px 10px !important; gap:6px !important; }
     [data-luxvm-sidebar] { overflow:hidden !important; }
-    [data-luxvm-sidebar] nav { flex:0 0 auto !important; min-height:0 !important; max-height:52vh; overflow-y:auto !important; scrollbar-width:thin; }
-    [data-luxvm-sidebar] [style*="sessionList"] { flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important; scrollbar-width:thin; }
+    [data-luxvm-sidebar-nav] { flex:0 0 auto !important; min-height:0 !important; max-height:52vh; overflow-y:auto !important; scrollbar-width:thin; }
+    [data-luxvm-session-list] { flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important; scrollbar-width:thin; }
     [data-luxvm-sidebar] [style*="sidebarHeader"] { padding-top:8px !important; }
     [data-luxvm-sidebar] [style*="newChatBtn"] { width:100% !important; text-align:left !important; padding:10px 12px !important; border-radius:10px !important; }
     [data-luxvm-main] { background:var(--luxvm-workspace,#fff); }
@@ -1672,7 +1672,7 @@ export default function App() {
           {!sidebarCollapsed && <><span style={styles.dot} /><strong>LuxVM</strong></>}
           <button type="button" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={styles.sidebarToggle}>{sidebarCollapsed ? '›' : '‹'}</button>
         </div>
-        <nav style={styles.navMenu}>
+        <nav data-luxvm-sidebar-nav style={styles.navMenu}>
           <button type="button" title="New Chat" aria-label="New Chat" onClick={createNewChat} style={styles.navBtn}><span style={styles.navIcon}>+</span>{!sidebarCollapsed && 'New'}</button>
           <button type="button" title="General Chat" aria-label="General Chat" onClick={() => { setActiveTab('chat'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'chat' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'General Chat'}</button>
           <button type="button" title="Codex Studio" aria-label="Codex Studio" onClick={() => { setActiveTab('codex'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'codex' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Codex Studio'}</button>
@@ -1691,7 +1691,7 @@ export default function App() {
         {!sidebarCollapsed && <>
           <div style={styles.divider} />
           <div style={styles.sidebarHeader}><button type="button" onClick={createNewChat} style={styles.newChatBtn}>+ New Chat</button></div>
-          <div style={styles.sessionList}>
+          <div data-luxvm-session-list style={styles.sessionList}>
             {sessions.map((session) => (
               <div key={session.id} onClick={() => { setActiveSessionId(session.id); setActiveTab('chat'); setComingSoonPage('') }} style={{ ...styles.sessionItem, backgroundColor: activeTab === 'chat' && session.id === activeSessionId ? '#E5E1D8' : 'transparent' }}>
                 <span style={styles.sessionTitle}>{session.title}</span>
