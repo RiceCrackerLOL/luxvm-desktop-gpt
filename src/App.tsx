@@ -635,6 +635,7 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  useEffect(() => { if (window.innerWidth <= 760) setSidebarCollapsed(true) }, [])
   const [showSettings, setShowSettings] = useState(false)
   const [githubRepo, setGithubRepo] = useState<string>(() => safeGetStorage<any>(SETTINGS_KEY, {}).githubRepo || 'RiceCrackerLOL/luxvm-desktop-gpt')
   const [githubToken, setGithubToken] = useState('')
@@ -1743,6 +1744,7 @@ export default function App() {
   return (
     <div data-luxvm-theme={theme} style={styles.appContainer}>
       {globalStyle}
+      {!sidebarCollapsed && <button type="button" className="luxvm-sidebar-backdrop" aria-label="Close navigation" onClick={() => setSidebarCollapsed(true)} />}
       <aside data-luxvm-sidebar data-collapsed={sidebarCollapsed} style={{ ...styles.sidebar, ...(sidebarCollapsed ? styles.sidebarCollapsed : {}) }}>
         <div className="luxvm-sidebar-brand" style={styles.sidebarBrand}>
           {!sidebarCollapsed && <><span className="luxvm-brand-dot" style={styles.dot} /><strong>LuxVM</strong></>}
@@ -1766,7 +1768,7 @@ export default function App() {
         </nav>
         {!sidebarCollapsed && <>
           <div className="luxvm-sidebar-divider" style={styles.divider} />
-          <div className="luxvm-sidebar-header" style={styles.sidebarHeader}><button type="button" onClick={createNewChat} style={styles.newChatBtn}>+ New Chat</button></div>
+          <div className="luxvm-sidebar-header" style={styles.sidebarHeader}><span>Recent</span><button type="button" aria-label="Search chats" title="Search chats" onClick={() => { setSearchOpen(true); setSearchQuery("") }}>⌕</button></div>
           <div data-luxvm-session-list style={styles.sessionList}>
             {sessions.map((session) => (
               <div className="luxvm-session-item" key={session.id} onClick={() => { setActiveSessionId(session.id); setActiveTab('chat'); setComingSoonPage('') }} style={{ ...styles.sessionItem, backgroundColor: activeTab === 'chat' && session.id === activeSessionId ? '#E5E1D8' : 'transparent' }}>
@@ -1959,6 +1961,18 @@ export default function App() {
         {activeTab === 'chat' && (
           <>
             <main data-luxvm-chat-area style={styles.chatArea}>
+              {(!currentSession || currentSession.messages.length === 0) && (
+                <section className="luxvm-welcome">
+                  <div className="luxvm-welcome-mark">L</div>
+                  <h1>What can I help you with?</h1>
+                  <p>Ask anything, work through a problem, or build something new.</p>
+                  <div className="luxvm-suggestions">
+                    <button type="button" onClick={() => setChatInput('Help me understand a complex topic step by step.')}>Explain a topic</button>
+                    <button type="button" onClick={() => setChatInput('Help me plan and organize a project.')}>Plan a project</button>
+                    <button type="button" onClick={() => setChatInput('Write and review some code with me.')}>Write some code</button>
+                  </div>
+                </section>
+              )}
               {currentSession?.messages.map((msg) => (
                 <div
                   key={msg.id}
