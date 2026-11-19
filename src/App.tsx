@@ -1952,6 +1952,8 @@ export default function App() {
     .luxvm-account-avatar { background:#eabf00 !important; color:#111 !important; width:24px !important; height:24px !important; font-size:10px !important; }
     .luxvm-account-copy strong { font-size:13px !important; }
     .luxvm-account-copy small { font-size:12px !important; }
+    .luxvm-claim-offer { width:100% !important; height:37px !important; margin-top:7px !important; border:1px solid #454545 !important; border-radius:22px !important; background:#242424 !important; color:#f0f0f0 !important; font-size:12px !important; font-weight:550 !important; }
+    .luxvm-claim-offer span { margin-left:6px; }
     [data-luxvm-theme] [data-luxvm-main] { background:#000 !important; }
     [data-luxvm-main] > header.luxvm-chatgpt-topbar { height:48px !important; min-height:48px !important; padding:0 16px 0 27px !important; border:0 !important; background:#000 !important; }
     .luxvm-chatgpt-topbar-left { display:flex; align-items:center; gap:7px; color:#ececec; font-size:14px; }
@@ -2018,6 +2020,7 @@ export default function App() {
             {!sidebarCollapsed && <span className="luxvm-account-copy"><strong>User</strong><small>Free</small></span>}
             {!sidebarCollapsed && <span className="luxvm-account-more" aria-hidden="true">•••</span>}
           </button>
+          {!sidebarCollapsed && <button type="button" className="luxvm-claim-offer" onClick={() => setComingSoonPage('Free offer')}>♔ <span>Claim offer</span></button>}
         </div>
       </aside>
 
