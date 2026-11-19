@@ -1918,6 +1918,16 @@ export default function App() {
     [data-luxvm-theme="dark"] .luxvm-account-button:hover {
       background:#171717 !important;
     }
+    /* Plain transcript layout: remove chat message bubbles in both themes. */
+    [data-luxvm-chat-area] [data-luxvm-message="user"],
+    [data-luxvm-chat-area] [data-luxvm-message="assistant"],
+    [data-luxvm-theme] [data-luxvm-chat-area] [data-luxvm-message="user"],
+    [data-luxvm-theme] [data-luxvm-chat-area] [data-luxvm-message="assistant"] {
+      width:100% !important; max-width:100% !important;
+      padding:0 !important; margin:0 !important;
+      border:0 !important; border-radius:0 !important;
+      background:transparent !important; box-shadow:none !important;
+    }
   `}</style>
 
   return (
