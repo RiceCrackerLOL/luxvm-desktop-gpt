@@ -1611,7 +1611,7 @@ export default function App() {
     [data-luxvm-sidebar] { overflow:hidden !important; }
     [data-luxvm-sidebar-nav] { flex:0 0 auto !important; min-height:0 !important; max-height:52vh; overflow-y:auto !important; scrollbar-width:thin; }
     [data-luxvm-session-list] { flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important; scrollbar-width:thin; }
-    [data-luxvm-sidebar] [style*="sidebarHeader"] { padding-top:8px !important; }
+    .luxvm-sidebar-header { padding-top:8px !important; }
     [data-luxvm-sidebar] [style*="newChatBtn"] { width:100% !important; text-align:left !important; padding:10px 12px !important; border-radius:10px !important; }
     [data-luxvm-main] { background:var(--luxvm-workspace,#fff); }
     [data-luxvm-theme="dark"] [data-luxvm-main] { background:#191A1D; }
@@ -1656,7 +1656,7 @@ export default function App() {
     @media (max-width:760px) {
       [data-luxvm-sidebar] { width:68px !important; min-width:68px !important; }
       [data-luxvm-sidebar] [style*="navBtn"] { padding:10px 7px !important; }
-      [data-luxvm-sidebar] [style*="navIcon"] { margin-right:0 !important; }
+      .luxvm-nav-icon { margin-right:0 !important; }
       [data-luxvm-main] > header { padding:8px 12px !important; }
       [data-luxvm-chat-area] { padding:28px 14px 18px !important; }
       [data-luxvm-chat-composer] { margin:0 12px 14px !important; }
@@ -1668,24 +1668,24 @@ export default function App() {
     [data-luxvm-theme="dark"] { --lux-sidebar:#171717; --lux-main:#212121; --lux-panel:#2b2b2b; --lux-text:#ececec; --lux-muted:#a1a1aa; --lux-border:#3a3a3a; --lux-hover:#303030; --lux-user:#303030; --lux-accent:#d58a6b; }
     [data-luxvm-theme] { background:var(--lux-main) !important; color:var(--lux-text) !important; }
     [data-luxvm-sidebar] { position:relative; z-index:30; flex:0 0 260px !important; width:260px !important; min-width:260px !important; height:100dvh; padding:10px 9px 12px; background:var(--lux-sidebar) !important; border-right:1px solid var(--lux-border) !important; color:var(--lux-text) !important; display:flex; flex-direction:column; overflow:hidden; transition:width .18s ease,min-width .18s ease,transform .2s ease; }
-    [data-luxvm-sidebar] [style*="sidebarBrand"] { min-height:48px !important; padding:4px 10px 12px !important; color:var(--lux-text) !important; }
-    [data-luxvm-sidebar] [style*="sidebarBrand"] strong { font-size:17px; font-weight:700; letter-spacing:-.035em; }
-    [data-luxvm-sidebar] [style*="dot"] { width:10px !important; height:10px !important; border-radius:4px !important; background:var(--lux-accent) !important; }
-    [data-luxvm-sidebar] [style*="sidebarToggle"] { color:var(--lux-muted) !important; width:30px !important; height:30px !important; }
+    .luxvm-sidebar-brand { min-height:48px !important; padding:4px 10px 12px !important; color:var(--lux-text) !important; }
+    .luxvm-sidebar-brand strong { font-size:17px; font-weight:700; letter-spacing:-.035em; }
+    .luxvm-brand-dot { width:10px !important; height:10px !important; border-radius:4px !important; background:var(--lux-accent) !important; }
+    .luxvm-sidebar-toggle { color:var(--lux-muted) !important; width:30px !important; height:30px !important; }
     [data-luxvm-sidebar-nav] { padding:7px 3px 10px !important; gap:3px !important; overflow-y:auto; }
     [data-luxvm-sidebar] button { color:var(--lux-text) !important; }
     [data-luxvm-sidebar-nav] button { display:flex !important; align-items:center !important; min-height:38px; padding:8px 11px !important; border:0 !important; border-radius:9px !important; background:transparent !important; color:var(--lux-text) !important; font-size:13px !important; font-weight:450 !important; text-align:left; }
-    [data-luxvm-sidebar-nav] button:hover,[data-luxvm-sidebar] [style*="sessionItem"]:hover { background:var(--lux-hover) !important; }
+    [data-luxvm-sidebar-nav] button:hover,.luxvm-session-item:hover { background:var(--lux-hover) !important; }
     [data-luxvm-sidebar-nav] button:first-child { background:var(--lux-panel) !important; border:1px solid var(--lux-border) !important; font-weight:600 !important; margin-bottom:5px; }
     [data-luxvm-sidebar-nav] button[aria-current="page"] { background:var(--lux-hover) !important; }
     [data-luxvm-sidebar] [style*="navIcon"] { width:23px !important; margin-right:10px !important; font-size:16px !important; color:var(--lux-muted) !important; }
-    [data-luxvm-sidebar] [style*="divider"] { border-color:var(--lux-border) !important; margin:5px 8px !important; }
+    .luxvm-sidebar-divider { border-color:var(--lux-border) !important; margin:5px 8px !important; }
     [data-luxvm-sidebar] [style*="sidebarHeader"] { display:flex !important; align-items:center; justify-content:space-between; padding:9px 10px 5px !important; color:var(--lux-muted) !important; font-size:11px !important; font-weight:650; letter-spacing:.04em; text-transform:uppercase; }
     [data-luxvm-sidebar] [style*="sidebarHeader"] button { border:0 !important; background:transparent !important; color:var(--lux-muted) !important; font-size:18px !important; cursor:pointer; }
     [data-luxvm-session-list] { flex:1; min-height:0; overflow-y:auto; padding:3px 2px 8px !important; }
     [data-luxvm-sidebar] [style*="sessionItem"] { display:flex; align-items:center; gap:5px; min-height:35px; padding:7px 9px !important; border-radius:8px; color:var(--lux-text) !important; cursor:pointer; }
-    [data-luxvm-sidebar] [style*="sessionTitle"] { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px !important; color:var(--lux-text) !important; }
-    [data-luxvm-sidebar] [style*="deleteBtn"] { opacity:0; color:var(--lux-muted) !important; }
+    .luxvm-session-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px !important; color:var(--lux-text) !important; }
+    .luxvm-session-delete { opacity:0; color:var(--lux-muted) !important; }
     [data-luxvm-sidebar] [style*="sessionItem"]:hover [style*="deleteBtn"] { opacity:1; }
     [data-luxvm-main] { position:relative; min-width:0; min-height:0; flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--lux-main) !important; color:var(--lux-text) !important; }
     [data-luxvm-main] > header { height:58px; min-height:58px; padding:0 22px !important; display:flex; align-items:center; justify-content:space-between; background:var(--lux-main) !important; color:var(--lux-text) !important; border-bottom:1px solid var(--lux-border) !important; }
@@ -1695,8 +1695,8 @@ export default function App() {
     [data-luxvm-chat-area] { width:min(100%,920px) !important; max-width:920px !important; flex:1; min-height:0; margin:0 auto !important; padding:34px 34px 28px !important; gap:24px !important; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--lux-border) transparent; }
     [data-luxvm-chat-area] [data-luxvm-message="user"] { max-width:min(76%,680px) !important; padding:12px 17px !important; border-radius:19px !important; background:var(--lux-user) !important; color:var(--lux-text) !important; font-size:14px !important; line-height:1.65 !important; }
     [data-luxvm-chat-area] [data-luxvm-message="assistant"] { width:100%; max-width:100% !important; padding:3px 0 !important; border-radius:0 !important; background:transparent !important; color:var(--lux-text) !important; font-size:14px !important; line-height:1.75 !important; }
-    [data-luxvm-chat-area] [data-luxvm-message] [style*="meta"] { color:var(--lux-muted) !important; font-size:11px !important; margin-bottom:8px !important; }
-    [data-luxvm-chat-area] [data-luxvm-message] [style*="content"] { white-space:pre-wrap; overflow-wrap:anywhere; }
+    .luxvm-message-meta { color:var(--lux-muted) !important; font-size:11px !important; margin-bottom:8px !important; }
+    .luxvm-message-content { white-space:pre-wrap; overflow-wrap:anywhere; }
     [data-luxvm-chat-composer] { width:min(calc(100% - 48px),820px) !important; max-width:820px !important; min-height:62px; margin:0 auto 22px !important; padding:8px 10px !important; gap:7px !important; align-items:center !important; border:1px solid var(--lux-border) !important; border-radius:20px !important; background:var(--lux-panel) !important; box-shadow:0 3px 16px rgba(0,0,0,.045); }
     [data-luxvm-chat-composer] input { min-width:0; min-height:42px; padding:10px 8px !important; color:var(--lux-text) !important; background:transparent !important; border:0 !important; outline:none !important; font-size:14px !important; }
     [data-luxvm-chat-composer] input::placeholder { color:var(--lux-muted) !important; }
@@ -1744,12 +1744,12 @@ export default function App() {
     <div data-luxvm-theme={theme} style={styles.appContainer}>
       {globalStyle}
       <aside data-luxvm-sidebar data-collapsed={sidebarCollapsed} style={{ ...styles.sidebar, ...(sidebarCollapsed ? styles.sidebarCollapsed : {}) }}>
-        <div style={styles.sidebarBrand}>
-          {!sidebarCollapsed && <><span style={styles.dot} /><strong>LuxVM</strong></>}
-          <button type="button" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={styles.sidebarToggle}>{sidebarCollapsed ? '›' : '‹'}</button>
+        <div className="luxvm-sidebar-brand" style={styles.sidebarBrand}>
+          {!sidebarCollapsed && <><span className="luxvm-brand-dot" style={styles.dot} /><strong>LuxVM</strong></>}
+          <button type="button" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} className="luxvm-sidebar-toggle" style={styles.sidebarToggle}>{sidebarCollapsed ? '›' : '‹'}</button>
         </div>
         <nav data-luxvm-sidebar-nav style={styles.navMenu}>
-          <button type="button" title="New Chat" aria-label="New Chat" onClick={createNewChat} style={styles.navBtn}><span style={styles.navIcon}>+</span>{!sidebarCollapsed && 'New'}</button>
+          <button type="button" title="New Chat" aria-label="New Chat" onClick={createNewChat} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>+</span>{!sidebarCollapsed && 'New'}</button>
           <button type="button" title="General Chat" aria-label="General Chat" onClick={() => { setActiveTab('chat'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'chat' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'General Chat'}</button>
           <button type="button" title="Codex Studio" aria-label="Codex Studio" onClick={() => { setActiveTab('codex'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'codex' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Codex Studio'}</button>
           <button type="button" title="Chess Bot" aria-label="Chess Bot" onClick={() => { setActiveTab('chess'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'chess' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>♙</span>{!sidebarCollapsed && 'Chess Bot'}</button>
@@ -1765,13 +1765,13 @@ export default function App() {
           <button type="button" title="Settings" aria-label="Settings" onClick={() => { setShowSettings(true); setComingSoonPage('') }} style={styles.navBtn}><span style={styles.navIcon}>⚙</span>{!sidebarCollapsed && 'Settings'}</button>
         </nav>
         {!sidebarCollapsed && <>
-          <div style={styles.divider} />
-          <div style={styles.sidebarHeader}><button type="button" onClick={createNewChat} style={styles.newChatBtn}>+ New Chat</button></div>
+          <div className="luxvm-sidebar-divider" style={styles.divider} />
+          <div className="luxvm-sidebar-header" style={styles.sidebarHeader}><button type="button" onClick={createNewChat} style={styles.newChatBtn}>+ New Chat</button></div>
           <div data-luxvm-session-list style={styles.sessionList}>
             {sessions.map((session) => (
-              <div key={session.id} onClick={() => { setActiveSessionId(session.id); setActiveTab('chat'); setComingSoonPage('') }} style={{ ...styles.sessionItem, backgroundColor: activeTab === 'chat' && session.id === activeSessionId ? '#E5E1D8' : 'transparent' }}>
-                <span style={styles.sessionTitle}>{session.title}</span>
-                <button type="button" onClick={(e) => deleteSession(session.id, e)} style={styles.deleteBtn} title="Delete Chat">×</button>
+              <div className="luxvm-session-item" key={session.id} onClick={() => { setActiveSessionId(session.id); setActiveTab('chat'); setComingSoonPage('') }} style={{ ...styles.sessionItem, backgroundColor: activeTab === 'chat' && session.id === activeSessionId ? '#E5E1D8' : 'transparent' }}>
+                <span className="luxvm-session-title" style={styles.sessionTitle}>{session.title}</span>
+                <button className="luxvm-session-delete" type="button" onClick={(e) => deleteSession(session.id, e)} style={styles.deleteBtn} title="Delete Chat">×</button>
               </div>
             ))}
           </div>
@@ -1983,11 +1983,11 @@ export default function App() {
                     }}
                     data-luxvm-message={msg.role === 'user' ? 'user' : 'assistant'}
                   >
-                    <div style={styles.meta}>
+                    <div className="luxvm-message-meta" style={styles.meta}>
                       <span>{msg.role === 'user' ? 'You' : msg.role === 'system' ? 'System' : 'LuxVM'}</span>
                       <span>{msg.timestamp}</span>
                     </div>
-                    <div style={styles.content}>{msg.content}</div>
+                    <div className="luxvm-message-content" style={styles.content}>{msg.content}</div>
                   </div>
                 </div>
               ))}
