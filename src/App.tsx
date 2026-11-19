@@ -631,6 +631,7 @@ function getAllLegalMoves(board: Board, whiteTurn: boolean, history: string[] = 
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('chat')
+  const [comingSoonPage, setComingSoonPage] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [githubRepo, setGithubRepo] = useState<string>(() => safeGetStorage<any>(SETTINGS_KEY, {}).githubRepo || 'RiceCrackerLOL/luxvm-desktop-gpt')
@@ -1096,7 +1097,9 @@ export default function App() {
     recognition.onresult = (event: any) => {
       const transcript = event.results?.[0]?.[0]?.transcript || ''
       if (transcript) {
-        sendVoicePrompt(transcript)
+        setActiveTab('chat')
+        setComingSoonPage('')
+        setChatInput(transcript)
       }
     }
     recognition.onerror = () => setIsListening(false)
@@ -1524,6 +1527,39 @@ export default function App() {
     button:active { transform: translateY(1px); }
 
     [data-luxvm-theme="light"] { background: #FFFFFF !important; color: #202124 !important; color-scheme: light; }
+    /* ChatGPT-inspired LuxVM workspace */
+    [data-luxvm-sidebar] { width:260px !important; min-width:260px !important; padding:8px 10px !important; gap:6px !important; }
+    [data-luxvm-sidebar] button { border-radius:9px !important; transition:background .16s ease,color .16s ease !important; }
+    [data-luxvm-sidebar] button:hover { background:rgba(128,128,128,.13) !important; }
+    [data-luxvm-sidebar] [style*="navBtnActive"] { background:rgba(128,128,128,.16) !important; border-left:0 !important; }
+    [data-luxvm-sidebar] [style*="sidebarBrand"] { padding:12px 8px !important; }
+    [data-luxvm-main] { min-width:0 !important; position:relative !important; }
+    [data-luxvm-main] > header { min-height:58px !important; padding:10px 24px !important; box-shadow:none !important; }
+    [data-luxvm-chat-area] { max-width:820px !important; padding:48px 28px 24px !important; gap:24px !important; }
+    [data-luxvm-message="user"] { border-radius:20px !important; padding:12px 18px !important; }
+    [data-luxvm-chat-composer] { max-width:820px !important; margin:0 auto 24px !important; padding:8px 10px 8px 14px !important; border-radius:26px !important; box-shadow:0 5px 24px rgba(0,0,0,.07) !important; align-items:center !important; gap:8px !important; }
+    [data-luxvm-chat-composer] input { min-width:0 !important; padding:13px 8px !important; font-size:15px !important; }
+    [data-luxvm-chat-composer] [data-composer-tool] { flex:0 0 36px !important; width:36px !important; height:36px !important; border:0 !important; border-radius:50% !important; background:transparent !important; color:inherit !important; cursor:pointer !important; font-size:22px !important; }
+    [data-luxvm-chat-composer] [data-composer-tool]:hover { background:rgba(128,128,128,.15) !important; }
+    [data-luxvm-chat-composer] [data-microphone] { font-size:19px !important; }
+    [data-luxvm-chat-composer] button[type="submit"] { width:38px !important; height:38px !important; min-width:38px !important; padding:0 !important; border-radius:50% !important; font-size:21px !important; }
+    [data-luxvm-coming-soon] { position:fixed; z-index:50; left:260px; top:58px; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; text-align:center; background:#fff; color:inherit; }
+    [data-luxvm-theme="dark"] [data-luxvm-coming-soon] { background:#191A1D; }
+    [data-luxvm-coming-soon] .luxvm-coming-icon { display:grid; place-items:center; width:58px; height:58px; margin-bottom:18px; border-radius:18px; background:rgba(128,128,128,.13); font-size:28px; }
+    [data-luxvm-coming-soon] h1 { margin:0 0 10px; font-size:28px; letter-spacing:-.04em; }
+    [data-luxvm-coming-soon] p { max-width:420px; color:#858990; line-height:1.6; }
+    [data-luxvm-coming-soon] span { margin-top:12px; color:#C66A4A; font-size:10px; font-weight:800; letter-spacing:.16em; }
+    [data-luxvm-coming-soon] button { margin-top:24px; border:1px solid rgba(128,128,128,.25); border-radius:20px; padding:10px 18px; background:transparent; color:inherit; cursor:pointer; }
+    @media (max-width:760px) {
+      [data-luxvm-sidebar] { width:68px !important; min-width:68px !important; }
+      [data-luxvm-sidebar] [style*="navBtn"] { padding:10px 7px !important; }
+      [data-luxvm-sidebar] [style*="navIcon"] { margin-right:0 !important; }
+      [data-luxvm-main] > header { padding:8px 12px !important; }
+      [data-luxvm-chat-area] { padding:28px 14px 18px !important; }
+      [data-luxvm-chat-composer] { margin:0 12px 14px !important; }
+      [data-luxvm-coming-soon] { left:68px; }
+    }
+
     [data-luxvm-theme="dark"] { color-scheme: dark; }
     [data-luxvm-theme="light"] [data-luxvm-sidebar] { background: #F7F7F8 !important; border-right: 1px solid #E5E7EB !important; }
     [data-luxvm-theme="light"] [data-luxvm-main] { background: #FFFFFF !important; }
@@ -1611,10 +1647,15 @@ export default function App() {
         <nav style={styles.navMenu}>
           <button type="button" title="New Chat" aria-label="New Chat" onClick={createNewChat} style={styles.navBtn}><span style={styles.navIcon}>+</span>{!sidebarCollapsed && 'New'}</button>
           <button type="button" title="General Chat" aria-label="General Chat" onClick={() => setActiveTab('chat')} style={{ ...styles.navBtn, ...(activeTab === 'chat' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'General Chat'}</button>
-          <button type="button" title="Voice Assistant" aria-label="Voice Assistant" onClick={() => setActiveTab('voice')} style={{ ...styles.navBtn, ...(activeTab === 'voice' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>◷</span>{!sidebarCollapsed && 'Voice Assistant'}</button>
           <button type="button" title="Codex Studio" aria-label="Codex Studio" onClick={() => setActiveTab('codex')} style={{ ...styles.navBtn, ...(activeTab === 'codex' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Codex Studio'}</button>
           <button type="button" title="Chess Bot" aria-label="Chess Bot" onClick={() => setActiveTab('chess')} style={{ ...styles.navBtn, ...(activeTab === 'chess' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>♙</span>{!sidebarCollapsed && 'Chess Bot'}</button>
-          <button type="button" title="Image Studio" aria-label="Image Studio" onClick={() => setActiveTab('image')} style={{ ...styles.navBtn, ...(activeTab === 'image' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>▧</span>{!sidebarCollapsed && 'Image Studio'}</button>
+          <button type="button" title="Images" aria-label="Images" onClick={() => { setComingSoonPage(''); setActiveTab('image') }} style={{ ...styles.navBtn, ...(activeTab === 'image' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>▧</span>{!sidebarCollapsed && 'Images'}</button>
+          <button type="button" title="Explore" aria-label="Explore" onClick={() => setComingSoonPage('Explore')} style={styles.navBtn}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'Explore'}</button>
+          <button type="button" title="Scheduled tasks" aria-label="Scheduled tasks" onClick={() => setComingSoonPage('Scheduled tasks')} style={styles.navBtn}><span style={styles.navIcon}>◷</span>{!sidebarCollapsed && 'Scheduled tasks'}</button>
+          <button type="button" title="Library" aria-label="Library" onClick={() => setComingSoonPage('Library')} style={styles.navBtn}><span style={styles.navIcon}>▤</span>{!sidebarCollapsed && 'Library'}</button>
+          <button type="button" title="Plugins" aria-label="Plugins" onClick={() => setComingSoonPage('Plugins')} style={styles.navBtn}><span style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Plugins'}</button>
+          <button type="button" title="Projects" aria-label="Projects" onClick={() => setComingSoonPage('Projects')} style={styles.navBtn}><span style={styles.navIcon}>▣</span>{!sidebarCollapsed && 'Projects'}</button>
+          <button type="button" title="Search chats" aria-label="Search chats" onClick={() => setComingSoonPage('Search chats')} style={styles.navBtn}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'Search chats'}</button>
         </nav>
         {!sidebarCollapsed && <>
           <div style={styles.divider} />
@@ -1636,7 +1677,6 @@ export default function App() {
             {sidebarCollapsed && <button type="button" onClick={() => setSidebarCollapsed(false)} aria-label="Expand sidebar" title="Expand sidebar" style={styles.headerMenuBtn}>☰</button>}
             <strong>
               {activeTab === 'chat' && ' General Chat'}
-              {activeTab === 'voice' && ' Voice Assistant'}
               {activeTab === 'codex' && ' Codex Code Studio'}
               {activeTab === 'chess' && ' Grandmaster Chess Bot'}
               {activeTab === 'image' && ' Image Generation Studio'}
@@ -1852,16 +1892,10 @@ export default function App() {
             </main>
 
             <form data-luxvm-chat-composer onSubmit={sendChatMessage} style={styles.footer}>
-              <input
-                style={styles.chatInput}
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask LuxVM anything…"
-                disabled={isChatLoading}
-              />
-              <button type="submit" style={styles.sendBtn} disabled={isChatLoading || !chatInput.trim()}>
-                Send
-              </button>
+              <button type="button" data-composer-tool title="Add files (coming soon)" aria-label="Add files" onClick={() => setComingSoonPage('Attachments')}>＋</button>
+              <input style={styles.chatInput} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Message LuxVM" disabled={isChatLoading} />
+              <button type="button" data-composer-tool data-microphone aria-label={isListening ? 'Stop microphone' : 'Use microphone'} title={isListening ? 'Stop listening' : 'Dictate a message'} onClick={toggleMicrophone} style={{ background: isListening ? '#C66A4A' : undefined, color: isListening ? '#fff' : undefined }}>◉</button>
+              <button type="submit" style={styles.sendBtn} disabled={isChatLoading || !chatInput.trim()}>↑</button>
             </form>
           </>
         )}
@@ -2080,6 +2114,16 @@ export default function App() {
               </div>
             </div>
           </div>
+        )}
+
+        {comingSoonPage && (
+          <section data-luxvm-coming-soon>
+            <div className="luxvm-coming-icon">✦</div>
+            <h1>{comingSoonPage}</h1>
+            <p>This part of LuxVM is not available yet. We’re preparing it for a future update.</p>
+            <span>COMING SOON</span>
+            <button type="button" onClick={() => setComingSoonPage('')}>Back to chat</button>
+          </section>
         )}
 
         {activeTab === 'image' && (
