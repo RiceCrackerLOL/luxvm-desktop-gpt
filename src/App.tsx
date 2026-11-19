@@ -1611,7 +1611,7 @@ export default function App() {
     [data-luxvm-sidebar-nav] { flex:0 0 auto !important; min-height:0 !important; max-height:52vh; overflow-y:auto !important; scrollbar-width:thin; }
     [data-luxvm-session-list] { flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important; scrollbar-width:thin; }
     .luxvm-sidebar-header { padding-top:8px !important; }
-    [data-luxvm-sidebar] [style*="newChatBtn"] { width:100% !important; text-align:left !important; padding:10px 12px !important; border-radius:10px !important; }
+    [data-luxvm-sidebar] .luxvm-obsolete-new-chat { width:100% !important; text-align:left !important; padding:10px 12px !important; border-radius:10px !important; }
     [data-luxvm-main] { background:var(--luxvm-workspace,#fff); }
     [data-luxvm-theme="dark"] [data-luxvm-main] { background:#191A1D; }
     [data-luxvm-chat-composer] { width:calc(100% - 48px) !important; box-sizing:border-box !important; }
@@ -1624,7 +1624,7 @@ export default function App() {
     [data-luxvm-sidebar] button { border-radius:9px !important; transition:background .16s ease,color .16s ease !important; }
     [data-luxvm-sidebar] button:hover { background:rgba(128,128,128,.13) !important; }
     [data-luxvm-sidebar] [style*="navBtnActive"] { background:rgba(128,128,128,.16) !important; border-left:0 !important; }
-    [data-luxvm-sidebar] [style*="sidebarBrand"] { padding:12px 8px !important; }
+    .luxvm-sidebar-brand { padding:12px 8px !important; }
     [data-luxvm-main] { min-width:0 !important; position:relative !important; }
     [data-luxvm-main] > header { min-height:58px !important; padding:10px 24px !important; box-shadow:none !important; }
     [data-luxvm-chat-area] { max-width:820px !important; padding:48px 28px 24px !important; gap:24px !important; }
@@ -1654,7 +1654,7 @@ export default function App() {
     [data-luxvm-coming-soon] button { margin-top:24px; border:1px solid rgba(128,128,128,.25); border-radius:20px; padding:10px 18px; background:transparent; color:inherit; cursor:pointer; }
     @media (max-width:760px) {
       [data-luxvm-sidebar] { width:68px !important; min-width:68px !important; }
-      [data-luxvm-sidebar] [style*="navBtn"] { padding:10px 7px !important; }
+      [data-luxvm-sidebar-nav] button { padding:10px 7px !important; }
       .luxvm-nav-icon { margin-right:0 !important; }
       [data-luxvm-main] > header { padding:8px 12px !important; }
       [data-luxvm-chat-area] { padding:28px 14px 18px !important; }
@@ -1677,15 +1677,15 @@ export default function App() {
     [data-luxvm-sidebar-nav] button:hover,.luxvm-session-item:hover { background:var(--lux-hover) !important; }
     [data-luxvm-sidebar-nav] button:first-child { background:var(--lux-panel) !important; border:1px solid var(--lux-border) !important; font-weight:600 !important; margin-bottom:5px; }
     [data-luxvm-sidebar-nav] button[aria-current="page"] { background:var(--lux-hover) !important; }
-    [data-luxvm-sidebar] [style*="navIcon"] { width:23px !important; margin-right:10px !important; font-size:16px !important; color:var(--lux-muted) !important; }
+    .luxvm-nav-icon { width:23px !important; margin-right:10px !important; font-size:16px !important; color:var(--lux-muted) !important; }
     .luxvm-sidebar-divider { border-color:var(--lux-border) !important; margin:5px 8px !important; }
-    [data-luxvm-sidebar] [style*="sidebarHeader"] { display:flex !important; align-items:center; justify-content:space-between; padding:9px 10px 5px !important; color:var(--lux-muted) !important; font-size:11px !important; font-weight:650; letter-spacing:.04em; text-transform:uppercase; }
-    [data-luxvm-sidebar] [style*="sidebarHeader"] button { border:0 !important; background:transparent !important; color:var(--lux-muted) !important; font-size:18px !important; cursor:pointer; }
+    .luxvm-sidebar-header { display:flex !important; align-items:center; justify-content:space-between; padding:9px 10px 5px !important; color:var(--lux-muted) !important; font-size:11px !important; font-weight:650; letter-spacing:.04em; text-transform:uppercase; }
+    .luxvm-sidebar-header button { border:0 !important; background:transparent !important; color:var(--lux-muted) !important; font-size:18px !important; cursor:pointer; }
     [data-luxvm-session-list] { flex:1; min-height:0; overflow-y:auto; padding:3px 2px 8px !important; }
-    [data-luxvm-sidebar] [style*="sessionItem"] { display:flex; align-items:center; gap:5px; min-height:35px; padding:7px 9px !important; border-radius:8px; color:var(--lux-text) !important; cursor:pointer; }
+    .luxvm-session-item { display:flex; align-items:center; gap:5px; min-height:35px; padding:7px 9px !important; border-radius:8px; color:var(--lux-text) !important; cursor:pointer; }
     .luxvm-session-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px !important; color:var(--lux-text) !important; }
     .luxvm-session-delete { opacity:0; color:var(--lux-muted) !important; }
-    [data-luxvm-sidebar] [style*="sessionItem"]:hover [style*="deleteBtn"] { opacity:1; }
+    .luxvm-session-item:hover [style*="deleteBtn"] { opacity:1; }
     [data-luxvm-main] { position:relative; min-width:0; min-height:0; flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--lux-main) !important; color:var(--lux-text) !important; }
     [data-luxvm-main] > header { height:58px; min-height:58px; padding:0 22px !important; display:flex; align-items:center; justify-content:space-between; background:var(--lux-main) !important; color:var(--lux-text) !important; border-bottom:1px solid var(--lux-border) !important; }
     [data-luxvm-main] > header strong { font-size:14px !important; font-weight:650 !important; letter-spacing:-.015em; }
@@ -1750,19 +1750,19 @@ export default function App() {
         </div>
         <nav data-luxvm-sidebar-nav style={styles.navMenu}>
           <button type="button" title="New Chat" aria-label="New Chat" onClick={createNewChat} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>+</span>{!sidebarCollapsed && 'New'}</button>
-          <button type="button" title="General Chat" aria-label="General Chat" onClick={() => { setActiveTab('chat'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'chat' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'General Chat'}</button>
-          <button type="button" title="Codex Studio" aria-label="Codex Studio" onClick={() => { setActiveTab('codex'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'codex' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Codex Studio'}</button>
-          <button type="button" title="Chess Bot" aria-label="Chess Bot" onClick={() => { setActiveTab('chess'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'chess' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>♙</span>{!sidebarCollapsed && 'Chess Bot'}</button>
-          <button type="button" title="Images" aria-label="Images" onClick={() => { setComingSoonPage(''); setActiveTab('image') }} style={{ ...styles.navBtn, ...(activeTab === 'image' ? styles.navBtnActive : {}) }}><span style={styles.navIcon}>▧</span>{!sidebarCollapsed && 'Images'}</button>
-          <button type="button" title="Explore" aria-label="Explore" onClick={() => setComingSoonPage('Explore')} style={styles.navBtn}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'Explore'}</button>
-          <button type="button" title="Apps" aria-label="Apps" onClick={() => setComingSoonPage('Apps')} style={styles.navBtn}><span style={styles.navIcon}>▦</span>{!sidebarCollapsed && 'Apps'}</button>
-          <button type="button" title="GPTs" aria-label="GPTs" onClick={() => setComingSoonPage('GPTs')} style={styles.navBtn}><span style={styles.navIcon}>✧</span>{!sidebarCollapsed && 'GPTs'}</button>
-          <button type="button" title="Scheduled tasks" aria-label="Scheduled tasks" onClick={() => setComingSoonPage('Scheduled tasks')} style={styles.navBtn}><span style={styles.navIcon}>◷</span>{!sidebarCollapsed && 'Scheduled tasks'}</button>
-          <button type="button" title="Library" aria-label="Library" onClick={() => setComingSoonPage('Library')} style={styles.navBtn}><span style={styles.navIcon}>▤</span>{!sidebarCollapsed && 'Library'}</button>
-          <button type="button" title="Plugins" aria-label="Plugins" onClick={() => setComingSoonPage('Plugins')} style={styles.navBtn}><span style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Plugins'}</button>
-          <button type="button" title="Projects" aria-label="Projects" onClick={() => setComingSoonPage('Projects')} style={styles.navBtn}><span style={styles.navIcon}>▣</span>{!sidebarCollapsed && 'Projects'}</button>
-          <button type="button" title="Search chats" aria-label="Search chats" onClick={() => { setSearchOpen(true); setSearchQuery(''); setComingSoonPage('') }} style={styles.navBtn}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'Search chats'}</button>
-          <button type="button" title="Settings" aria-label="Settings" onClick={() => { setShowSettings(true); setComingSoonPage('') }} style={styles.navBtn}><span style={styles.navIcon}>⚙</span>{!sidebarCollapsed && 'Settings'}</button>
+          <button type="button" title="General Chat" aria-label="General Chat" onClick={() => { setActiveTab('chat'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'chat' ? styles.navBtnActive : {}) }}><span className="luxvm-nav-icon" style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'General Chat'}</button>
+          <button type="button" title="Codex Studio" aria-label="Codex Studio" onClick={() => { setActiveTab('codex'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'codex' ? styles.navBtnActive : {}) }}><span className="luxvm-nav-icon" style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Codex Studio'}</button>
+          <button type="button" title="Chess Bot" aria-label="Chess Bot" onClick={() => { setActiveTab('chess'); setComingSoonPage('') }} style={{ ...styles.navBtn, ...(activeTab === 'chess' ? styles.navBtnActive : {}) }}><span className="luxvm-nav-icon" style={styles.navIcon}>♙</span>{!sidebarCollapsed && 'Chess Bot'}</button>
+          <button type="button" title="Images" aria-label="Images" onClick={() => { setComingSoonPage(''); setActiveTab('image') }} style={{ ...styles.navBtn, ...(activeTab === 'image' ? styles.navBtnActive : {}) }}><span className="luxvm-nav-icon" style={styles.navIcon}>▧</span>{!sidebarCollapsed && 'Images'}</button>
+          <button type="button" title="Explore" aria-label="Explore" onClick={() => setComingSoonPage('Explore')} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'Explore'}</button>
+          <button type="button" title="Apps" aria-label="Apps" onClick={() => setComingSoonPage('Apps')} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>▦</span>{!sidebarCollapsed && 'Apps'}</button>
+          <button type="button" title="GPTs" aria-label="GPTs" onClick={() => setComingSoonPage('GPTs')} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>✧</span>{!sidebarCollapsed && 'GPTs'}</button>
+          <button type="button" title="Scheduled tasks" aria-label="Scheduled tasks" onClick={() => setComingSoonPage('Scheduled tasks')} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>◷</span>{!sidebarCollapsed && 'Scheduled tasks'}</button>
+          <button type="button" title="Library" aria-label="Library" onClick={() => setComingSoonPage('Library')} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>▤</span>{!sidebarCollapsed && 'Library'}</button>
+          <button type="button" title="Plugins" aria-label="Plugins" onClick={() => setComingSoonPage('Plugins')} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Plugins'}</button>
+          <button type="button" title="Projects" aria-label="Projects" onClick={() => setComingSoonPage('Projects')} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>▣</span>{!sidebarCollapsed && 'Projects'}</button>
+          <button type="button" title="Search chats" aria-label="Search chats" onClick={() => { setSearchOpen(true); setSearchQuery(''); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'Search chats'}</button>
+          <button type="button" title="Settings" aria-label="Settings" onClick={() => { setShowSettings(true); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon" style={styles.navIcon}>⚙</span>{!sidebarCollapsed && 'Settings'}</button>
         </nav>
         {!sidebarCollapsed && <>
           <div className="luxvm-sidebar-divider" style={styles.divider} />
