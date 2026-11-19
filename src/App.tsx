@@ -632,6 +632,8 @@ function getAllLegalMoves(board: Board, whiteTurn: boolean, history: string[] = 
 export default function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('chat')
   const [comingSoonPage, setComingSoonPage] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [githubRepo, setGithubRepo] = useState<string>(() => safeGetStorage<any>(SETTINGS_KEY, {}).githubRepo || 'RiceCrackerLOL/luxvm-desktop-gpt')
@@ -1622,6 +1624,16 @@ export default function App() {
     [data-luxvm-chat-composer] [data-composer-tool]:hover { background:rgba(128,128,128,.15) !important; }
     [data-luxvm-chat-composer] [data-microphone] { font-size:19px !important; }
     [data-luxvm-chat-composer] button[type="submit"] { width:38px !important; height:38px !important; min-width:38px !important; padding:0 !important; border-radius:50% !important; font-size:21px !important; }
+    [data-luxvm-search] { position:fixed; z-index:80; inset:0; display:flex; justify-content:center; align-items:flex-start; padding:12vh 20px 24px; background:rgba(0,0,0,.42); backdrop-filter:blur(4px); }
+    .luxvm-search-panel { width:min(620px,100%); max-height:70vh; display:flex; flex-direction:column; gap:14px; padding:20px; border:1px solid rgba(128,128,128,.22); border-radius:18px; background:var(--luxvm-panel,#fff); color:inherit; box-shadow:0 20px 80px rgba(0,0,0,.24); }
+    [data-luxvm-theme="dark"] .luxvm-search-panel { background:#22252A; }
+    .luxvm-search-heading { display:flex; align-items:center; justify-content:space-between; font-size:16px; }
+    .luxvm-search-heading button { border:0; background:transparent; color:inherit; font-size:24px; cursor:pointer; }
+    .luxvm-search-panel > input { width:100%; box-sizing:border-box; padding:13px 15px; border:1px solid rgba(128,128,128,.3); border-radius:11px; background:transparent; color:inherit; font:inherit; outline:none; }
+    .luxvm-search-results { overflow:auto; display:flex; flex-direction:column; gap:5px; }
+    .luxvm-search-results > button { display:flex; flex-direction:column; gap:4px; text-align:left; padding:12px; border:0; border-radius:10px; background:transparent; color:inherit; cursor:pointer; }
+    .luxvm-search-results > button:hover { background:rgba(128,128,128,.13); }
+    .luxvm-search-results > button span,.luxvm-search-results > p { color:#858990; font-size:12px; }
     [data-luxvm-coming-soon] { position:fixed; z-index:50; left:260px; top:58px; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; text-align:center; background:#fff; color:inherit; }
     [data-luxvm-theme="dark"] [data-luxvm-coming-soon] { background:#191A1D; }
     [data-luxvm-coming-soon] .luxvm-coming-icon { display:grid; place-items:center; width:58px; height:58px; margin-bottom:18px; border-radius:18px; background:rgba(128,128,128,.13); font-size:28px; }
@@ -1661,7 +1673,8 @@ export default function App() {
           <button type="button" title="Library" aria-label="Library" onClick={() => setComingSoonPage('Library')} style={styles.navBtn}><span style={styles.navIcon}>▤</span>{!sidebarCollapsed && 'Library'}</button>
           <button type="button" title="Plugins" aria-label="Plugins" onClick={() => setComingSoonPage('Plugins')} style={styles.navBtn}><span style={styles.navIcon}>⌘</span>{!sidebarCollapsed && 'Plugins'}</button>
           <button type="button" title="Projects" aria-label="Projects" onClick={() => setComingSoonPage('Projects')} style={styles.navBtn}><span style={styles.navIcon}>▣</span>{!sidebarCollapsed && 'Projects'}</button>
-          <button type="button" title="Search chats" aria-label="Search chats" onClick={() => setComingSoonPage('Search chats')} style={styles.navBtn}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'Search chats'}</button>
+          <button type="button" title="Search chats" aria-label="Search chats" onClick={() => { setSearchOpen(true); setSearchQuery(''); setComingSoonPage('') }} style={styles.navBtn}><span style={styles.navIcon}>⌕</span>{!sidebarCollapsed && 'Search chats'}</button>
+          <button type="button" title="Settings" aria-label="Settings" onClick={() => { setShowSettings(true); setComingSoonPage('') }} style={styles.navBtn}><span style={styles.navIcon}>⚙</span>{!sidebarCollapsed && 'Settings'}</button>
         </nav>
         {!sidebarCollapsed && <>
           <div style={styles.divider} />
@@ -1687,7 +1700,11 @@ export default function App() {
               {activeTab === 'chess' && ' Grandmaster Chess Bot'}
               {activeTab === 'image' && ' Image Generation Studio'}
             </strong>
-            <span style={styles.badge}>{models[activeTab]}</span>
+            {activeTab === 'chat' ? (
+              <select aria-label="Chat model" value={models.chat} onChange={(e) => setModels((current) => ({ ...current, chat: e.target.value }))} style={{ ...styles.input, width: 'auto', maxWidth: 'min(42vw, 280px)', padding: '7px 10px', borderRadius: '9px', fontSize: '12px' }}>
+                <option value={models.chat}>{models.chat}</option>
+              </select>
+            ) : <span style={styles.badge}>{models[activeTab]}</span>}
           </div>
           <div style={styles.actions}>
             <button
@@ -2120,6 +2137,23 @@ export default function App() {
               </div>
             </div>
           </div>
+        )}
+
+        {searchOpen && (
+          <section data-luxvm-search role="dialog" aria-modal="true" aria-label="Search chats">
+            <div className="luxvm-search-panel">
+              <div className="luxvm-search-heading"><strong>Search chats</strong><button type="button" aria-label="Close search" onClick={() => setSearchOpen(false)}>×</button></div>
+              <input autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search your conversations..." aria-label="Search conversations" />
+              <div className="luxvm-search-results">
+                {sessions.filter((session) => !searchQuery.trim() || session.title.toLowerCase().includes(searchQuery.toLowerCase()) || session.messages.some((message) => message.content.toLowerCase().includes(searchQuery.toLowerCase()))).map((session) => (
+                  <button type="button" key={session.id} onClick={() => { setActiveSessionId(session.id); setActiveTab('chat'); setComingSoonPage(''); setSearchOpen(false) }}>
+                    <strong>{session.title}</strong><span>{session.messages[session.messages.length - 1]?.content.slice(0, 110) || 'Empty conversation'}</span>
+                  </button>
+                ))}
+                {sessions.filter((session) => !searchQuery.trim() || session.title.toLowerCase().includes(searchQuery.toLowerCase()) || session.messages.some((message) => message.content.toLowerCase().includes(searchQuery.toLowerCase()))).length === 0 && <p>No conversations match your search.</p>}
+              </div>
+            </div>
+          </section>
         )}
 
         {comingSoonPage && (
