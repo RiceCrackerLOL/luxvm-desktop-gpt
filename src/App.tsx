@@ -1736,6 +1736,72 @@ export default function App() {
       .luxvm-welcome { padding:20px 0 36px; }
       .luxvm-welcome h1 { font-size:27px; }
     }
+    /* ChatGPT visual details: neutral surfaces, subtle borders, quiet typography */
+    [data-luxvm-theme="light"] { --lux-sidebar:#f9f9f9; --lux-main:#ffffff; --lux-panel:#ffffff; --lux-text:#0d0d0d; --lux-muted:#6e6e6e; --lux-border:#e5e5e5; --lux-hover:#ececec; --lux-user:#f4f4f4; --lux-accent:#0d0d0d; background:#fff !important; color:#0d0d0d !important; }
+    [data-luxvm-theme="dark"] { --lux-sidebar:#171717; --lux-main:#212121; --lux-panel:#2f2f2f; --lux-text:#ececec; --lux-muted:#a1a1a1; --lux-border:#3b3b3b; --lux-hover:#2f2f2f; --lux-user:#303030; --lux-accent:#ececec; background:#212121 !important; color:#ececec !important; }
+    [data-luxvm-theme] { font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif !important; letter-spacing:normal; }
+    [data-luxvm-sidebar] { background:var(--lux-sidebar) !important; border-right:1px solid transparent !important; padding:8px !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-sidebar] { border-right-color:#2b2b2b !important; }
+    .luxvm-sidebar-brand { height:48px !important; min-height:48px !important; padding:4px 8px !important; }
+    .luxvm-brand-dot { display:none !important; }
+    .luxvm-sidebar-brand strong { color:var(--lux-text) !important; font-size:16px !important; font-weight:650 !important; letter-spacing:-.04em !important; }
+    .luxvm-sidebar-toggle { color:var(--lux-muted) !important; border:0 !important; border-radius:8px !important; }
+    [data-luxvm-sidebar-nav] { padding:8px 0 10px !important; gap:2px !important; max-height:58vh !important; }
+    [data-luxvm-sidebar-nav] button { min-height:36px !important; padding:7px 10px !important; gap:0 !important; border:0 !important; border-radius:8px !important; background:transparent !important; color:var(--lux-text) !important; font-size:13px !important; font-weight:450 !important; text-align:left !important; }
+    [data-luxvm-sidebar-nav] button:first-child { background:transparent !important; border:0 !important; margin-bottom:4px !important; font-weight:550 !important; }
+    [data-luxvm-sidebar-nav] button:hover,.luxvm-session-item:hover,.luxvm-account-button:hover { background:var(--lux-hover) !important; }
+    [data-luxvm-sidebar-nav] button[aria-current="page"],[data-luxvm-sidebar-nav] button[style*="border-left"] { background:var(--lux-hover) !important; }
+    .luxvm-nav-icon { width:24px !important; min-width:24px !important; margin-right:9px !important; color:var(--lux-muted) !important; font-size:16px !important; }
+    .luxvm-sidebar-divider { height:1px !important; background:var(--lux-border) !important; margin:5px 5px !important; }
+    .luxvm-sidebar-header { padding:12px 9px 6px !important; color:var(--lux-muted) !important; font-size:11px !important; font-weight:600 !important; letter-spacing:.01em !important; text-transform:none !important; }
+    .luxvm-sidebar-header button { width:25px !important; height:25px !important; border:0 !important; border-radius:6px !important; background:transparent !important; color:var(--lux-muted) !important; }
+    [data-luxvm-session-list] { padding:2px 0 8px !important; }
+    .luxvm-session-item { min-height:34px !important; padding:7px 9px !important; border-radius:8px !important; background:transparent !important; color:var(--lux-text) !important; }
+    .luxvm-session-title { font-size:12px !important; color:var(--lux-text) !important; }
+    .luxvm-session-delete { opacity:0 !important; color:var(--lux-muted) !important; }
+    .luxvm-session-item:hover .luxvm-session-delete { opacity:1 !important; }
+    .luxvm-account-footer { flex:0 0 auto; margin-top:auto; padding:8px 0 2px; border-top:1px solid var(--lux-border); }
+    .luxvm-account-button { display:flex; align-items:center; width:100%; min-height:48px; gap:10px; padding:6px 8px; border:0; border-radius:9px; background:transparent; color:var(--lux-text); text-align:left; cursor:pointer; }
+    .luxvm-account-avatar { display:grid; place-items:center; flex:0 0 32px; width:32px; height:32px; border-radius:50%; background:#6b8f79; color:white; font-size:13px; font-weight:650; }
+    .luxvm-account-copy { display:flex; flex:1; min-width:0; flex-direction:column; gap:2px; }
+    .luxvm-account-copy strong { color:var(--lux-text); font-size:12px; font-weight:600; }
+    .luxvm-account-copy small { color:var(--lux-muted); font-size:11px; line-height:1.2; }
+    .luxvm-account-more { color:var(--lux-muted); font-size:13px; letter-spacing:1px; }
+    [data-luxvm-main] { background:var(--lux-main) !important; color:var(--lux-text) !important; }
+    [data-luxvm-main] > header { min-height:56px !important; height:56px !important; padding:0 22px !important; border-bottom:1px solid var(--lux-border) !important; background:var(--lux-main) !important; color:var(--lux-text) !important; }
+    [data-luxvm-main] > header strong { color:var(--lux-text) !important; font-size:14px !important; font-weight:600 !important; letter-spacing:-.02em !important; }
+    [data-luxvm-main] > header select { max-width:230px !important; padding:6px 9px !important; border:0 !important; background:transparent !important; color:var(--lux-muted) !important; font-size:12px !important; }
+    [data-luxvm-main] > header button { border:1px solid var(--lux-border) !important; border-radius:8px !important; background:transparent !important; color:var(--lux-text) !important; }
+    [data-luxvm-chat-area] { max-width:800px !important; padding:42px 28px 26px !important; }
+    [data-luxvm-chat-area] [data-luxvm-message="user"] { background:var(--lux-user) !important; color:var(--lux-text) !important; border:0 !important; border-radius:20px !important; }
+    [data-luxvm-chat-area] [data-luxvm-message="assistant"] { color:var(--lux-text) !important; }
+    [data-luxvm-chat-composer] { width:min(calc(100% - 48px),800px) !important; max-width:800px !important; margin:0 auto 0 !important; border:1px solid var(--lux-border) !important; border-radius:26px !important; background:var(--lux-panel) !important; box-shadow:0 5px 22px rgba(0,0,0,.055) !important; }
+    [data-luxvm-theme="dark"] [data-luxvm-chat-composer] { box-shadow:0 5px 22px rgba(0,0,0,.18) !important; }
+    [data-luxvm-chat-composer] input { color:var(--lux-text) !important; font-size:14px !important; }
+    [data-luxvm-chat-composer] input::placeholder { color:var(--lux-muted) !important; }
+    [data-luxvm-chat-composer] button[type="submit"] { background:var(--lux-text) !important; color:var(--lux-main) !important; }
+    .luxvm-disclaimer { width:min(calc(100% - 48px),800px); margin:8px auto 12px; padding:0 12px; box-sizing:border-box; color:var(--lux-muted); text-align:center; font-size:10px; line-height:1.4; }
+    .luxvm-welcome-mark { background:var(--lux-user) !important; color:var(--lux-text) !important; }
+    .luxvm-welcome h1 { color:var(--lux-text) !important; font-weight:600 !important; letter-spacing:-.045em !important; }
+    .luxvm-welcome p { color:var(--lux-muted) !important; }
+    .luxvm-suggestions button { background:var(--lux-panel) !important; color:var(--lux-text) !important; border:1px solid var(--lux-border) !important; border-radius:12px !important; }
+    [data-luxvm-settings] { background:var(--lux-panel) !important; color:var(--lux-text) !important; border-color:var(--lux-border) !important; }
+    [data-luxvm-settings] * { color:var(--lux-text); }
+    [data-luxvm-settings] input,[data-luxvm-settings] textarea,[data-luxvm-settings] select { background:var(--lux-main) !important; color:var(--lux-text) !important; border-color:var(--lux-border) !important; }
+    [data-luxvm-search] { background:rgba(0,0,0,.48) !important; }
+    .luxvm-search-panel { background:var(--lux-panel) !important; color:var(--lux-text) !important; border-color:var(--lux-border) !important; }
+    [data-luxvm-theme="dark"] .luxvm-search-panel { background:#2f2f2f !important; }
+    [data-luxvm-coming-soon] { background:var(--lux-main) !important; color:var(--lux-text) !important; }
+    [data-luxvm-coming-soon] h1,[data-luxvm-coming-soon] p { color:var(--lux-text) !important; }
+    [data-luxvm-sidebar][data-collapsed="true"] .luxvm-account-footer { padding-top:8px; }
+    [data-luxvm-sidebar][data-collapsed="true"] .luxvm-account-button { justify-content:center; padding:6px 0; }
+    @media (max-width:760px) {
+      .luxvm-disclaimer { width:calc(100% - 22px); margin:7px 11px 10px; }
+      [data-luxvm-main] > header { height:54px !important; min-height:54px !important; padding:0 12px !important; }
+      [data-luxvm-chat-composer] { width:calc(100% - 22px) !important; margin:0 11px !important; }
+      [data-luxvm-chat-area] { padding:25px 15px 18px !important; }
+    }
+
   `}</style>
 
   return (
@@ -1775,6 +1841,13 @@ export default function App() {
             ))}
           </div>
         </>}
+        <div className="luxvm-account-footer">
+          <button type="button" className="luxvm-account-button" onClick={() => { setShowSettings(true); setComingSoonPage('') }} title="Account and plan">
+            <span className="luxvm-account-avatar">U</span>
+            {!sidebarCollapsed && <span className="luxvm-account-copy"><strong>User</strong><small>Free</small></span>}
+            {!sidebarCollapsed && <span className="luxvm-account-more" aria-hidden="true">•••</span>}
+          </button>
+        </div>
       </aside>
 
       <div data-luxvm-main style={styles.mainContent}>
@@ -2019,6 +2092,7 @@ export default function App() {
               <button type="button" data-composer-tool data-microphone aria-label={isListening ? 'Stop microphone' : 'Use microphone'} title={isListening ? 'Stop listening' : 'Dictate a message'} onClick={toggleMicrophone} style={{ background: isListening ? '#C66A4A' : undefined, color: isListening ? '#fff' : undefined }}>◉</button>
               <button type="submit" style={styles.sendBtn} disabled={isChatLoading || !chatInput.trim()}>↑</button>
             </form>
+            <div className="luxvm-disclaimer">LuxVM may make mistakes. Check important info.</div>
           </>
         )}
 
