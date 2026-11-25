@@ -1,3 +1,4 @@
+# Manual redeployment trigger: 2026-11-25
 name: Build and deploy LuxVM Website
 
 on:
