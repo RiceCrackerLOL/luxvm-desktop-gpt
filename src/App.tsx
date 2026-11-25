@@ -1982,6 +1982,72 @@ export default function App() {
       [data-luxvm-chat-area] { width:calc(100% - 28px) !important; }
       [data-luxvm-chat-composer] { width:calc(100% - 22px) !important; }
     }
+
+    /* Final full-black theme contrast correction.
+       The black surfaces were being combined with the light theme's dark text tokens. */
+    [data-luxvm-theme] {
+      --lux-sidebar:#000000 !important;
+      --lux-main:#000000 !important;
+      --lux-panel:#111111 !important;
+      --lux-text:#eeeeee !important;
+      --lux-muted:#a1a1a1 !important;
+      --lux-border:#292929 !important;
+      --lux-hover:#171717 !important;
+      --lux-user:#171717 !important;
+      --lux-accent:#eeeeee !important;
+      background:#000000 !important;
+      color:#eeeeee !important;
+      color-scheme:dark !important;
+    }
+    [data-luxvm-theme] [data-luxvm-sidebar],
+    [data-luxvm-theme] [data-luxvm-main],
+    [data-luxvm-theme] [data-luxvm-main] > header {
+      background:#000000 !important;
+      color:#eeeeee !important;
+      border-color:#292929 !important;
+    }
+    [data-luxvm-theme] [data-luxvm-sidebar] *,
+    [data-luxvm-theme] [data-luxvm-main] * {
+      color:#eeeeee !important;
+    }
+    [data-luxvm-theme] .luxvm-sidebar-header,
+    [data-luxvm-theme] .luxvm-sidebar-toggle,
+    [data-luxvm-theme] .luxvm-nav-icon,
+    [data-luxvm-theme] .luxvm-account-copy small,
+    [data-luxvm-theme] .luxvm-account-more,
+    [data-luxvm-theme] .luxvm-disclaimer,
+    [data-luxvm-theme] .luxvm-session-delete,
+    [data-luxvm-theme] [data-luxvm-chat-composer] input::placeholder {
+      color:#a1a1a1 !important;
+    }
+    [data-luxvm-theme] [data-luxvm-chat-composer] {
+      background:#111111 !important;
+      border:1px solid #292929 !important;
+    }
+    [data-luxvm-theme] [data-luxvm-chat-composer] input {
+      background:transparent !important;
+      color:#eeeeee !important;
+    }
+    [data-luxvm-theme] [data-luxvm-chat-area] [data-luxvm-message="user"] {
+      background:#171717 !important;
+      color:#eeeeee !important;
+    }
+    [data-luxvm-theme] [data-luxvm-chat-area] [data-luxvm-message="assistant"] {
+      background:transparent !important;
+      color:#eeeeee !important;
+    }
+    [data-luxvm-theme] .luxvm-free-offer { color:#54a9ff !important; }
+    [data-luxvm-theme] a { color:#8ab4f8 !important; }
+    [data-luxvm-theme] input,
+    [data-luxvm-theme] textarea,
+    [data-luxvm-theme] select {
+      background:#111111 !important;
+      color:#eeeeee !important;
+      border-color:#3a3a3a !important;
+      color-scheme:dark !important;
+    }
+    [data-luxvm-theme] input::placeholder,
+    [data-luxvm-theme] textarea::placeholder { color:#a1a1a1 !important; }
   `}</style>
 
   return (
