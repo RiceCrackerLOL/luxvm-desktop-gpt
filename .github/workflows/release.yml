@@ -1,4 +1,4 @@
-name: Publish LuxVM Windows Update
+name: Publish RZER Windows Update
 
 on:
   push:
