@@ -310,18 +310,18 @@ async function solveWithSageMathCell(
 
 function formatMathResult(value: string, compact: boolean): string {
   const normalized = value.trim()
-  if (!compact || !/^[-+]?\\d+$/.test(normalized)) return value
+  if (!compact || !/^[-+]?\d+$/.test(normalized)) return value
   const digits = normalized.replace(/^[-+]/, '')
   if (digits.length <= 12000) return value
   const sign = normalized.startsWith('-') ? '-' : ''
-  if (/^(\\d)\\1+$/.test(digits)) {
+  if (/^(\d)\1+$/.test(digits)) {
     return sign + digits[0] + ' repeated ' + digits.length.toLocaleString() + ' times'
   }
   const head = digits.slice(0, 80)
   const tail = digits.slice(-80)
-  return sign + 'Exact integer — ' + digits.length.toLocaleString() + ' digits\\n\\n' +
-    'First 80 digits: ' + head + '\\n' +
-    'Last 80 digits:  ' + tail + '\\n\\n' +
+  return sign + 'Exact integer — ' + digits.length.toLocaleString() + ' digits\n\n' +
+    'First 80 digits: ' + head + '\n' +
+    'Last 80 digits:  ' + tail + '\n\n' +
     'The full exact result is preserved by the calculation engine; compact display is enabled in Settings.'
 }
 
