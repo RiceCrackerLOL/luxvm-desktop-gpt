@@ -836,9 +836,9 @@ export default function App() {
 
   const shareCurrentChat = async () => {
     const transcript = (currentSession?.messages || []).map((message) =>
-      (message.role === 'user' ? 'You' : 'RZER') + ':\\n' + message.content
-    ).join('\\n\\n')
-    const shareText = (currentSession?.title || 'RZER conversation') + '\\n\\n' + transcript
+      (message.role === 'user' ? 'You' : 'RZER') + ':\n' + message.content
+    ).join('\n\n')
+    const shareText = (currentSession?.title || 'RZER conversation') + '\n\n' + transcript
     try {
       if (navigator.share) {
         await navigator.share({ title: currentSession?.title || 'RZER conversation', text: shareText })
@@ -873,7 +873,7 @@ export default function App() {
         return
       }
       const text = await file.text()
-      setChatInput((previous) => (previous ? previous + '\\n\\n' : '') + '[Attached file: ' + file.name + ']\\n' + text)
+      setChatInput((previous) => (previous ? previous + '\n\n' : '') + '[Attached file: ' + file.name + ']\n' + text)
     } catch {
       setShareStatus('Could not read that file')
       window.setTimeout(() => setShareStatus(''), 2600)
