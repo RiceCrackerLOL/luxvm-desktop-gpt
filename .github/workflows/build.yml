@@ -1,4 +1,4 @@
-name: Build LuxVM Desktop
+name: Build RZER Desktop
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: LuxVM-NPM-Audit
+          name: RZER-NPM-Audit
           path: npm-audit.json
           if-no-files-found: ignore
           retention-days: 7
@@ -50,7 +50,7 @@ jobs:
       - name: Upload desktop installer
         uses: actions/upload-artifact@v4
         with:
-          name: LuxVM-Windows
+          name: RZER-Windows
           path: release/*.exe
           if-no-files-found: error
           retention-days: 14
