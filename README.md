@@ -1,6 +1,6 @@
-# LuxVM Desktop
+# RZER Desktop
 
-LuxVM is a multi-modal desktop workstation built with React, TypeScript, Vite, and Electron, using OpenRouter for model access.
+RZER is a multi-modal desktop workstation built with React, TypeScript, Vite, and Electron, using OpenRouter for model access.
 
 ## Setup
 
