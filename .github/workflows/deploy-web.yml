@@ -1,5 +1,5 @@
 # Manual redeployment trigger: 2026-11-25
-name: Build and deploy LuxVM Website
+name: Build and deploy RZER Website
 
 on:
   push:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build LuxVM web interface
+    name: Build RZER web interface
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
@@ -47,7 +47,7 @@ jobs:
           path: ./dist
 
   deploy:
-    name: Deploy LuxVM website
+    name: Deploy RZER website
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
