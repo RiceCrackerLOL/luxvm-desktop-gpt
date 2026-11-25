@@ -706,7 +706,7 @@ export default function App() {
     apiKey: '',
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
     models: DEFAULT_MODELS,
-    theme: 'light' as 'light' | 'dark',
+    theme: 'dark' as 'light' | 'dark',
     imageProvider: 'openrouter' as 'openrouter' | 'cloudflare',
     compactMathResults: true,
     cloudflareWorkerUrl: '',
@@ -811,6 +811,8 @@ export default function App() {
 
   const [chatInput, setChatInput] = useState('')
   const [isChatLoading, setIsChatLoading] = useState(false)
+  const [shareStatus, setShareStatus] = useState('')
+  const chatFileInputRef = useRef<HTMLInputElement | null>(null)
   const [apiStatus, setApiStatus] = useState('')
   const [isTestingApi, setIsTestingApi] = useState(false)
   const chatBottomRef = useRef<HTMLDivElement | null>(null)
@@ -831,6 +833,54 @@ export default function App() {
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [currentSession?.messages, isChatLoading, activeTab])
+
+  const shareCurrentChat = async () => {
+    const transcript = (currentSession?.messages || []).map((message) =>
+      (message.role === 'user' ? 'You' : 'RZER') + ':\\n' + message.content
+    ).join('\\n\\n')
+    const shareText = (currentSession?.title || 'RZER conversation') + '\\n\\n' + transcript
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: currentSession?.title || 'RZER conversation', text: shareText })
+        setShareStatus('Shared')
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText)
+        setShareStatus('Conversation copied')
+      } else {
+        const area = document.createElement('textarea')
+        area.value = shareText
+        area.style.position = 'fixed'
+        area.style.opacity = '0'
+        document.body.appendChild(area)
+        area.select()
+        const copied = document.execCommand('copy')
+        area.remove()
+        setShareStatus(copied ? 'Conversation copied' : 'Could not copy conversation')
+      }
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') setShareStatus('Sharing is unavailable')
+    }
+    window.setTimeout(() => setShareStatus(''), 2600)
+  }
+
+  const handleChatFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    try {
+      if (file.size > 120000) {
+        setShareStatus('File is too large (120 KB maximum)')
+        window.setTimeout(() => setShareStatus(''), 2600)
+        return
+      }
+      const text = await file.text()
+      setChatInput((previous) => (previous ? previous + '\\n\\n' : '') + '[Attached file: ' + file.name + ']\\n' + text)
+    } catch {
+      setShareStatus('Could not read that file')
+      window.setTimeout(() => setShareStatus(''), 2600)
+    } finally {
+      event.target.value = ''
+    }
+  }
 
   const createNewChat = () => {
     const newSession: ChatSession = {
@@ -2093,15 +2143,17 @@ export default function App() {
           {!sidebarCollapsed && <strong className="luxvm-brand-wordmark">RZER</strong>}
           <button type="button" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} className="luxvm-sidebar-toggle" style={styles.sidebarToggle}>{sidebarCollapsed ? '›' : '‹'}</button>
         </div>
-        <nav data-luxvm-sidebar-nav style={styles.navMenu}>
-          <button type="button" title="New chat" aria-label="New chat" onClick={createNewChat} style={styles.navBtn}><span className="luxvm-nav-icon">▱</span>{!sidebarCollapsed && 'New chat'}</button>
-          <button type="button" title="Images" aria-label="Images" onClick={() => { setComingSoonPage(''); setActiveTab('image') }} style={styles.navBtn}><span className="luxvm-nav-icon">▧</span>{!sidebarCollapsed && 'Images'}</button>
-          <button type="button" title="Scheduled" aria-label="Scheduled" onClick={() => setComingSoonPage('Scheduled')} style={styles.navBtn}><span className="luxvm-nav-icon">◷</span>{!sidebarCollapsed && 'Scheduled'}</button>
-          <button type="button" title="Library" aria-label="Library" onClick={() => setComingSoonPage('Library')} style={styles.navBtn}><span className="luxvm-nav-icon">▤</span>{!sidebarCollapsed && 'Library'}</button>
-          <button type="button" title="Plugins" aria-label="Plugins" onClick={() => setComingSoonPage('Plugins')} style={styles.navBtn}><span className="luxvm-nav-icon">◎</span>{!sidebarCollapsed && 'Plugins'}</button>
-          <button type="button" title="Explore" aria-label="Explore" onClick={() => setComingSoonPage('Explore')} style={styles.navBtn}><span className="luxvm-nav-icon">⌘</span>{!sidebarCollapsed && 'Explore'}</button>
+        <nav data-luxvm-sidebar-nav style={styles.navMenu} aria-label="Main navigation">
+          <button type="button" title="New chat" aria-label="New chat" onClick={createNewChat} style={styles.navBtn}><span className="luxvm-nav-icon">＋</span>{!sidebarCollapsed && 'New chat'}</button>
+          <button type="button" title="Search conversations" aria-label="Search conversations" onClick={() => setSearchOpen(true)} style={styles.navBtn}><span className="luxvm-nav-icon">⌕</span>{!sidebarCollapsed && 'Search'}</button>
+          <div className="rzer-nav-caption">{!sidebarCollapsed && 'Workspaces'}</div>
+          <button type="button" title="Chat" aria-label="Chat" aria-current={activeTab === 'chat' ? 'page' : undefined} onClick={() => { setActiveTab('chat'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">▤</span>{!sidebarCollapsed && 'Chat'}</button>
+          <button type="button" title="Images" aria-label="Images" aria-current={activeTab === 'image' ? 'page' : undefined} onClick={() => { setActiveTab('image'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">▧</span>{!sidebarCollapsed && 'Image Studio'}</button>
+          <button type="button" title="Voice" aria-label="Voice" aria-current={activeTab === 'voice' ? 'page' : undefined} onClick={() => { setActiveTab('voice'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">◉</span>{!sidebarCollapsed && 'Voice'}</button>
+          <button type="button" title="Codex" aria-label="Codex" aria-current={activeTab === 'codex' ? 'page' : undefined} onClick={() => { setActiveTab('codex'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">⌘</span>{!sidebarCollapsed && 'Codex Studio'}</button>
+          <button type="button" title="Chess" aria-label="Chess" aria-current={activeTab === 'chess' ? 'page' : undefined} onClick={() => { setActiveTab('chess'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">♞</span>{!sidebarCollapsed && 'Chess'}</button>
         </nav>
-        {!sidebarCollapsed && <div className="luxvm-projects-block"><strong>Projects</strong><span>No projects</span></div>}
+        {!sidebarCollapsed && <div className="rzer-sidebar-note">Your workspace, in one place.</div>}
         {!sidebarCollapsed && <>
           <div className="luxvm-sidebar-divider" style={styles.divider} />
           <div className="luxvm-sidebar-header" style={styles.sidebarHeader}><span>Recents</span></div>
@@ -2120,7 +2172,7 @@ export default function App() {
             {!sidebarCollapsed && <span className="luxvm-account-copy"><strong>User</strong><small>Free</small></span>}
             {!sidebarCollapsed && <span className="luxvm-account-more" aria-hidden="true">•••</span>}
           </button>
-          {!sidebarCollapsed && <button type="button" className="luxvm-claim-offer" onClick={() => setComingSoonPage('Free offer')}>♔ <span>Claim offer</span></button>}
+
         </div>
       </aside>
 
@@ -2128,12 +2180,12 @@ export default function App() {
         <header className="luxvm-chatgpt-topbar" style={styles.header}>
           <div className="luxvm-chatgpt-topbar-left">
             {sidebarCollapsed && <button type="button" onClick={() => setSidebarCollapsed(false)} aria-label="Expand sidebar" title="Expand sidebar">☰</button>}
-            <strong>{activeTab === 'chat' ? (currentSession?.title || 'New chat') : activeTab === 'codex' ? 'Codex' : activeTab === 'chess' ? 'Chess' : 'Images'}</strong>
-            <span className="luxvm-topbar-chevron">⌄</span>
+            <strong>{activeTab === 'chat' ? (currentSession?.title || 'New chat') : activeTab === 'codex' ? 'Codex Studio' : activeTab === 'chess' ? 'Chess' : activeTab === 'voice' ? 'Voice' : 'Image Studio'}</strong>
           </div>
           <div className="luxvm-chatgpt-topbar-actions">
-            <button type="button" className="luxvm-free-offer" onClick={() => setComingSoonPage('Free offer')}>♔ <span>Free offer</span></button>
-            <button type="button" aria-label="Share" title="Share" onClick={() => setComingSoonPage('Share')}>⇧</button>
+            {shareStatus && <span className="rzer-action-status" role="status">{shareStatus}</span>}
+            <button type="button" aria-label="Share conversation" title="Share conversation" onClick={shareCurrentChat}>Share</button>
+            <button type="button" aria-label="Open settings" title="Settings" onClick={() => setShowSettings(true)}>Settings</button>
           </div>
         </header>
 
@@ -2301,7 +2353,7 @@ export default function App() {
             <main data-luxvm-chat-area style={styles.chatArea}>
               {(!currentSession || currentSession.messages.length === 0) && (
                 <section className="luxvm-welcome">
-                  <div className="luxvm-welcome-mark">L</div>
+                  <div className="luxvm-welcome-mark">R</div>
                   <h1>What can I help you with?</h1>
                   <p>Ask anything, work through a problem, or build something new.</p>
                   <div className="luxvm-suggestions">
@@ -2355,7 +2407,8 @@ export default function App() {
             </main>
 
             <form data-luxvm-chat-composer onSubmit={sendChatMessage} style={styles.footer}>
-              <button type="button" data-composer-tool title="Add files (coming soon)" aria-label="Add files" onClick={() => setComingSoonPage('Attachments')}>＋</button>
+              <input ref={chatFileInputRef} type="file" accept=".txt,.md,.json,.csv,.ts,.tsx,.js,.jsx,.py,.html,.css,.xml,.yaml,.yml,.log" onChange={handleChatFileUpload} style={{ display: 'none' }} />
+              <button type="button" data-composer-tool title="Attach a text or code file (120 KB max)" aria-label="Attach a text or code file" onClick={() => chatFileInputRef.current?.click()}>＋</button>
               <input style={styles.chatInput} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask RZER" disabled={isChatLoading} />
               <button type="button" data-composer-tool data-microphone aria-label={isListening ? 'Stop microphone' : 'Use microphone'} title={isListening ? 'Stop listening' : 'Dictate a message'} onClick={toggleMicrophone} style={{ background: isListening ? '#C66A4A' : undefined, color: isListening ? '#fff' : undefined }}>◉</button>
               <button type="submit" style={styles.sendBtn} disabled={isChatLoading || !chatInput.trim()}>↑</button>
@@ -2594,16 +2647,6 @@ export default function App() {
                 {sessions.filter((session) => !searchQuery.trim() || session.title.toLowerCase().includes(searchQuery.toLowerCase()) || session.messages.some((message) => message.content.toLowerCase().includes(searchQuery.toLowerCase()))).length === 0 && <p>No conversations match your search.</p>}
               </div>
             </div>
-          </section>
-        )}
-
-        {comingSoonPage && (
-          <section data-luxvm-coming-soon>
-            <div className="luxvm-coming-icon">✦</div>
-            <h1>{comingSoonPage}</h1>
-            <p>This part of RZER is not available yet. We’re preparing it for a future update.</p>
-            <span>COMING SOON</span>
-            <button type="button" onClick={() => { setComingSoonPage(''); setActiveTab('chat') }}>Back to chat</button>
           </section>
         )}
 
