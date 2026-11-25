@@ -708,6 +708,7 @@ export default function App() {
     models: DEFAULT_MODELS,
     theme: 'light' as 'light' | 'dark',
     imageProvider: 'openrouter' as 'openrouter' | 'cloudflare',
+    compactMathResults: true,
     cloudflareWorkerUrl: '',
     cloudflareAccessKey: '',
   })
