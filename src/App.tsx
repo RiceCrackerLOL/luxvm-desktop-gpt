@@ -63,7 +63,7 @@ const DEFAULT_MODELS: ModelConfig = {
   image: 'recraft/recraft-v4.1-flash-v2:free',
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are LuxVM, a capable, thoughtful desktop AI assistant.
+const DEFAULT_SYSTEM_PROMPT = `You are RZER, a capable, thoughtful desktop AI assistant.
 
 How to respond:
 - Understand the user's actual goal and answer the request directly before adding context.
@@ -275,7 +275,7 @@ async function solveWithSageMathCell(
     throw new Error('The math model did not provide a final-answer output. Please try again.')
   }
   if (/\b(import|exec|eval|compile|open|input|interact|while)\b|__|(?:os|sys|subprocess|socket|requests|urllib|pathlib)\s*\./i.test(sageCode)) {
-    throw new Error('The generated calculation was blocked by LuxVM safety checks. Please rephrase the problem.')
+    throw new Error('The generated calculation was blocked by RZER safety checks. Please rephrase the problem.')
   }
 
   const calculationResponse = await fetch(SAGEMATHCELL_SERVICE_URL, {
@@ -306,6 +306,23 @@ async function solveWithSageMathCell(
   const answer = String(calculation?.stdout || '').trim()
   if (!answer) throw new Error('SageMathCell completed the calculation but returned no final answer. Please try again.')
   return answer
+}
+
+function formatMathResult(value: string, compact: boolean): string {
+  const normalized = value.trim()
+  if (!compact || !/^[-+]?\\d+$/.test(normalized)) return value
+  const digits = normalized.replace(/^[-+]/, '')
+  if (digits.length <= 12000) return value
+  const sign = normalized.startsWith('-') ? '-' : ''
+  if (/^(\\d)\\1+$/.test(digits)) {
+    return sign + digits[0] + ' repeated ' + digits.length.toLocaleString() + ' times'
+  }
+  const head = digits.slice(0, 80)
+  const tail = digits.slice(-80)
+  return sign + 'Exact integer — ' + digits.length.toLocaleString() + ' digits\\n\\n' +
+    'First 80 digits: ' + head + '\\n' +
+    'Last 80 digits:  ' + tail + '\\n\\n' +
+    'The full exact result is preserved by the calculation engine; compact display is enabled in Settings.'
 }
 
 function getCalculatorContext(prompt: string): string {
@@ -642,7 +659,7 @@ export default function App() {
   const [githubRepo, setGithubRepo] = useState<string>(() => safeGetStorage<any>(SETTINGS_KEY, {}).githubRepo || 'RiceCrackerLOL/luxvm-desktop-gpt')
   const [githubToken, setGithubToken] = useState('')
   const [githubTargetPath, setGithubTargetPath] = useState('src/generated-codex-output.txt')
-  const [githubCommitMessage, setGithubCommitMessage] = useState('Update LuxVM from Codex Studio')
+  const [githubCommitMessage, setGithubCommitMessage] = useState('Update RZER from Codex Studio')
   const [showGithubApproval, setShowGithubApproval] = useState(false)
   const [isGithubPublishing, setIsGithubPublishing] = useState(false)
   const [githubStatus, setGithubStatus] = useState('')
@@ -655,32 +672,32 @@ export default function App() {
       if (status === 'available') {
         setUpdateStatus(`Update ${data?.version || ''} is available.`)
       }
-      if (status === 'up-to-date') setUpdateStatus('LuxVM is up to date.')
+      if (status === 'up-to-date') setUpdateStatus('RZER is up to date.')
       if (status === 'downloading') {
         setUpdateProgress(data?.percent || 0)
         setUpdateStatus(`Downloading update: ${data?.percent || 0}%`)
       }
       if (status === 'downloaded') {
-        setUpdateStatus(`Update ${data?.version || ''} is ready to install. Restart LuxVM to finish.`)
+        setUpdateStatus(`Update ${data?.version || ''} is ready to install. Restart RZER to finish.`)
       }
       if (status === 'error') setUpdateStatus(`Update error: ${data?.message || 'Unknown error'}`)
     })
     return () => unsubscribe?.()
   }, [])
 
-  const checkForLuxVMUpdates = async () => {
+  const checkForRZERUpdates = async () => {
     setUpdateStatus('Checking for updates...')
     const result = await window.luxvmUpdater?.checkForUpdates()
     if (result && !result.ok) setUpdateStatus(result.message || 'Update check failed.')
   }
 
-  const downloadLuxVMUpdate = async () => {
+  const downloadRZERUpdate = async () => {
     setUpdateStatus('Starting update download...')
     const result = await window.luxvmUpdater?.downloadUpdate()
     if (result && !result.ok) setUpdateStatus(result.message || 'Update download failed.')
   }
 
-  const installLuxVMUpdate = async () => {
+  const installRZERUpdate = async () => {
     const result = await window.luxvmUpdater?.installUpdate()
     if (result && !result.ok) setUpdateStatus(result.message || 'Could not install update.')
   }
@@ -704,6 +721,7 @@ export default function App() {
     ...(initialSettings.models || {}),
   })
   const [theme, setTheme] = useState<'light' | 'dark'>(initialSettings.theme === 'dark' ? 'dark' : 'light')
+  const [compactMathResults, setCompactMathResults] = useState<boolean>(initialSettings.compactMathResults !== false)
   const [imageProvider, setImageProvider] = useState<'openrouter' | 'cloudflare'>(initialSettings.imageProvider === 'cloudflare' ? 'cloudflare' : 'openrouter')
   const [cloudflareWorkerUrl, setCloudflareWorkerUrl] = useState<string>(initialSettings.cloudflareWorkerUrl || '')
   const [cloudflareAccessKey, setCloudflareAccessKey] = useState<string>(initialSettings.cloudflareAccessKey || '')
@@ -715,17 +733,18 @@ export default function App() {
       models,
       githubRepo: githubRepo.trim(),
       theme,
+      compactMathResults,
       imageProvider,
       cloudflareWorkerUrl: cloudflareWorkerUrl.trim(),
       cloudflareAccessKey: cloudflareAccessKey.trim(),
     })
-  }, [apiKey, systemPrompt, models, githubRepo, theme, imageProvider, cloudflareWorkerUrl, cloudflareAccessKey])
+  }, [apiKey, systemPrompt, models, githubRepo, theme, compactMathResults, imageProvider, cloudflareWorkerUrl, cloudflareAccessKey])
 
   const openRouterHeaders = (key = apiKey) => ({
     'Content-Type': 'application/json',
     Authorization: `Bearer ${key.trim()}`,
     'HTTP-Referer': 'https://luxvm.desktop',
-    'X-Title': 'LuxVM Desktop',
+    'X-Title': 'RZER Desktop',
   })
 
   const testOpenRouterConnection = async () => {
@@ -739,7 +758,7 @@ export default function App() {
         headers: openRouterHeaders(key),
         body: JSON.stringify({
           model: models.chat.trim(),
-          messages: [{ role: 'user', content: 'Reply with exactly: LuxVM connection successful.' }],
+          messages: [{ role: 'user', content: 'Reply with exactly: RZER connection successful.' }],
         }),
       })
       const raw = await response.text()
@@ -770,7 +789,7 @@ export default function App() {
           {
             id: 'welcome-1',
             role: 'assistant',
-            content: 'Welcome to LuxVM Desktop. Paste your OpenRouter key in Settings to unlock Chat, Voice, Codex, Chess, and Image Studio!',
+            content: 'Welcome to RZER Desktop. Paste your OpenRouter key in Settings to unlock Chat, Voice, Codex, Chess, and Image Studio!',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           },
         ],
@@ -880,7 +899,7 @@ export default function App() {
       if (mathQuestion) {
         const directAnswer = getDirectCalculatorAnswer(trimmed)
         if (directAnswer !== null) {
-          setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: directAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
+          setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: formatMathResult(directAnswer, compactMathResults), timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
           return
         }
       }
@@ -888,7 +907,7 @@ export default function App() {
         const sageCode = buildKeylessSageCode(trimmed)
         if (!sageCode) throw new Error('This maths question needs natural-language interpretation. Expressions, powers, derivatives, integrals, factoring and equations can be calculated without an API key. Add an API key for full word-problem interpretation.')
         const finalAnswer = await executeSageMathCode(sageCode, controller.signal)
-        setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: finalAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
+        setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: formatMathResult(finalAnswer, compactMathResults), timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
         return
       }
       if (!apiKey.trim()) throw new Error('Missing OpenRouter API Key. Click Settings in the top right to paste it.')
@@ -912,7 +931,7 @@ export default function App() {
                     {
                       id: String(Date.now() + 1),
                       role: 'assistant',
-                      content: finalAnswer,
+                      content: formatMathResult(finalAnswer, compactMathResults),
                       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     },
                   ],
@@ -1147,7 +1166,7 @@ export default function App() {
           messages: [
             {
               role: 'system',
-              content: `You are LuxVM Codex, a senior software engineer. Build a correct, maintainable solution in ${codexLang}. Follow the user's requirements closely and preserve any supplied interfaces or constraints. Prefer simple, readable code; handle relevant edge cases; validate untrusted input; avoid insecure defaults and unnecessary dependencies. Include helpful comments only where they add value. If the request is ambiguous but still actionable, make a reasonable assumption. If a critical detail is missing, ask one concise question instead of inventing it. Output the complete code only, without markdown fences or conversational preamble.`,
+              content: `You are RZER Codex, a senior software engineer. Build a correct, maintainable solution in ${codexLang}. Follow the user's requirements closely and preserve any supplied interfaces or constraints. Prefer simple, readable code; handle relevant edge cases; validate untrusted input; avoid insecure defaults and unnecessary dependencies. Include helpful comments only where they add value. If the request is ambiguous but still actionable, make a reasonable assumption. If a critical detail is missing, ask one concise question instead of inventing it. Output the complete code only, without markdown fences or conversational preamble.`,
             },
             { role: 'user', content: codexPrompt.trim() },
           ],
@@ -1215,7 +1234,7 @@ export default function App() {
         method: 'PUT',
         headers,
         body: JSON.stringify({
-          message: githubCommitMessage.trim() || 'Update LuxVM from Codex Studio',
+          message: githubCommitMessage.trim() || 'Update RZER from Codex Studio',
           content: encodeBase64Utf8(codexOutput),
           ...(existingSha ? { sha: existingSha } : {}),
           branch: 'main',
@@ -1401,7 +1420,7 @@ export default function App() {
         if (whiteLegalAfter.length === 0) {
           setChessStatus(
             isKingInCheck(afterAiBoard, true)
-              ? `Checkmate! LuxVM wins with ${chosenUci}.`
+              ? `Checkmate! RZER wins with ${chosenUci}.`
               : 'Stalemate! Draw.'
           )
         } else if (isKingInCheck(afterAiBoard, true)) {
@@ -1445,10 +1464,10 @@ export default function App() {
         setReferenceImage({ url: reader.result, name: file.name })
         setImageError('')
       } else {
-        setImageError('LuxVM could not read that image. Try another file.')
+        setImageError('RZER could not read that image. Try another file.')
       }
     }
-    reader.onerror = () => setImageError('LuxVM could not read that image. Try another file.')
+    reader.onerror = () => setImageError('RZER could not read that image. Try another file.')
     reader.readAsDataURL(file)
     event.target.value = ''
   }
@@ -1533,6 +1552,11 @@ export default function App() {
   const globalStyle = <style>{`
     :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; }
     * { box-sizing: border-box; }
+    * { scrollbar-width: thin; scrollbar-color: #555555 #111111; }
+    *::-webkit-scrollbar { width: 10px; height: 10px; }
+    *::-webkit-scrollbar-track { background: #111111; }
+    *::-webkit-scrollbar-thumb { background: #555555; border: 2px solid #111111; border-radius: 8px; }
+    *::-webkit-scrollbar-thumb:hover { background: #777777; }
     body { margin: 0; background: #FFFFFF; color: #202124; }
     button, input, textarea, select { font: inherit; }
     button { transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
@@ -1614,7 +1638,7 @@ export default function App() {
     [data-luxvm-theme="dark"] [data-luxvm-settings] textarea[data-personality-prompt] { background: #24272D !important; color: #F5F6F7 !important; border: 1px solid #59616D !important; }
     [data-luxvm-theme="light"] [data-luxvm-settings] label, [data-luxvm-theme="light"] [data-luxvm-settings] span { color: #41454B !important; }
     [data-luxvm-theme="dark"] [data-luxvm-settings] label, [data-luxvm-theme="dark"] [data-luxvm-settings] span { color: #C9CDD3 !important; }
-    /* ChatGPT-inspired LuxVM workspace */
+    /* RZER-inspired RZER workspace */
     [data-luxvm-sidebar] { width:260px !important; min-width:260px !important; padding:8px 10px !important; gap:6px !important; }
     [data-luxvm-sidebar] { overflow:hidden !important; }
     [data-luxvm-sidebar-nav] { flex:0 0 auto !important; min-height:0 !important; max-height:52vh; overflow-y:auto !important; scrollbar-width:thin; }
@@ -1670,7 +1694,7 @@ export default function App() {
       [data-luxvm-coming-soon] { left:68px; }
     }
 
-    /* LuxVM workspace redesign */
+    /* RZER workspace redesign */
     :root { --lux-sidebar:#f7f7f8; --lux-main:#fff; --lux-panel:#fff; --lux-text:#202123; --lux-muted:#777b83; --lux-border:#e5e5e7; --lux-hover:#ececee; --lux-user:#f4f4f4; --lux-accent:#b96d50; }
     [data-luxvm-theme="dark"] { --lux-sidebar:#171717; --lux-main:#212121; --lux-panel:#2b2b2b; --lux-text:#ececec; --lux-muted:#a1a1aa; --lux-border:#3a3a3a; --lux-hover:#303030; --lux-user:#303030; --lux-accent:#d58a6b; }
     [data-luxvm-theme] { background:var(--lux-main) !important; color:var(--lux-text) !important; }
@@ -1745,7 +1769,7 @@ export default function App() {
       .luxvm-welcome { padding:20px 0 36px; }
       .luxvm-welcome h1 { font-size:27px; }
     }
-    /* ChatGPT visual details: neutral surfaces, subtle borders, quiet typography */
+    /* RZER visual details: neutral surfaces, subtle borders, quiet typography */
     [data-luxvm-theme="light"] { --lux-sidebar:#f9f9f9; --lux-main:#ffffff; --lux-panel:#ffffff; --lux-text:#0d0d0d; --lux-muted:#6e6e6e; --lux-border:#e5e5e5; --lux-hover:#ececec; --lux-user:#f4f4f4; --lux-accent:#0d0d0d; background:#fff !important; color:#0d0d0d !important; }
     [data-luxvm-theme="dark"] { --lux-sidebar:#171717; --lux-main:#212121; --lux-panel:#2f2f2f; --lux-text:#ececec; --lux-muted:#a1a1a1; --lux-border:#3b3b3b; --lux-hover:#2f2f2f; --lux-user:#303030; --lux-accent:#ececec; background:#212121 !important; color:#ececec !important; }
     [data-luxvm-theme] { font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif !important; letter-spacing:normal; }
@@ -1781,7 +1805,7 @@ export default function App() {
     [data-luxvm-main] > header strong { color:var(--lux-text) !important; font-size:14px !important; font-weight:600 !important; letter-spacing:-.02em !important; }
     [data-luxvm-main] > header select { max-width:230px !important; padding:6px 9px !important; border:0 !important; background:transparent !important; color:var(--lux-muted) !important; font-size:12px !important; }
     [data-luxvm-main] > header button { border:1px solid var(--lux-border) !important; border-radius:8px !important; background:transparent !important; color:var(--lux-text) !important; }
-    [data-luxvm-chat-area] { max-width:800px !important; padding:42px 28px 26px !important; }
+    [data-luxvm-chat-area] { overflow-y:scroll !important; scrollbar-gutter:stable; max-width:800px !important; padding:42px 28px 26px !important; }
     [data-luxvm-chat-area] [data-luxvm-message="user"] { background:var(--lux-user) !important; color:var(--lux-text) !important; border:0 !important; border-radius:20px !important; }
     [data-luxvm-chat-area] [data-luxvm-message="assistant"] { color:var(--lux-text) !important; }
     [data-luxvm-chat-composer] { width:min(calc(100% - 48px),800px) !important; max-width:800px !important; margin:0 auto 0 !important; border:1px solid var(--lux-border) !important; border-radius:26px !important; background:var(--lux-panel) !important; box-shadow:0 5px 22px rgba(0,0,0,.055) !important; }
@@ -1812,7 +1836,7 @@ export default function App() {
     }
 
 
-    /* Single authoritative ChatGPT-neutral colour layer. Keep layout untouched. */
+    /* Single authoritative RZER-neutral colour layer. Keep layout untouched. */
     [data-luxvm-theme="light"] {
       --lux-sidebar:#f9f9f9; --lux-main:#ffffff; --lux-panel:#ffffff;
       --lux-text:#0d0d0d; --lux-muted:#6e6e6e; --lux-border:#e5e5e5;
@@ -1938,7 +1962,7 @@ export default function App() {
       background:transparent !important; box-shadow:none !important;
     }
 
-    /* Screenshot-matched ChatGPT desktop shell */
+    /* Screenshot-matched RZER desktop shell */
     .luxvm-brand-wordmark { font-size:18px !important; font-weight:650 !important; letter-spacing:-.035em !important; color:#f4f4f4 !important; }
     [data-luxvm-theme] [data-luxvm-sidebar] { flex-basis:341px !important; width:341px !important; min-width:341px !important; padding:8px 7px 8px !important; gap:0 !important; background:#000 !important; border-right:1px solid #202020 !important; }
     .luxvm-sidebar-brand { height:43px !important; min-height:43px !important; padding:0 9px !important; display:flex !important; align-items:center !important; justify-content:space-between !important; }
@@ -2065,7 +2089,7 @@ export default function App() {
       {!sidebarCollapsed && <button type="button" className="luxvm-sidebar-backdrop" aria-label="Close navigation" onClick={() => setSidebarCollapsed(true)} />}
       <aside data-luxvm-sidebar data-collapsed={sidebarCollapsed} style={{ ...styles.sidebar, ...(sidebarCollapsed ? styles.sidebarCollapsed : {}) }}>
         <div className="luxvm-sidebar-brand" style={styles.sidebarBrand}>
-          {!sidebarCollapsed && <strong className="luxvm-brand-wordmark">ChatGPT</strong>}
+          {!sidebarCollapsed && <strong className="luxvm-brand-wordmark">RZER</strong>}
           <button type="button" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} className="luxvm-sidebar-toggle" style={styles.sidebarToggle}>{sidebarCollapsed ? '›' : '‹'}</button>
         </div>
         <nav data-luxvm-sidebar-nav style={styles.navMenu}>
@@ -2118,7 +2142,7 @@ export default function App() {
               Settings
             </h3>
             <p style={{ margin: '0 0 18px', fontSize: '13px', color: '#777E87' }}>
-              Customize your LuxVM experience
+              Customize your RZER experience
             </p>
             <div style={{ ...styles.fieldRow, marginBottom: '16px' }}>
               <label style={styles.label}>Appearance</label>
@@ -2131,7 +2155,7 @@ export default function App() {
 
             {window.luxvmUpdater && (
             <div style={{ ...styles.fieldRow, padding: '12px', border: '1px solid #D8D2C7', borderRadius: '8px', background: '#F0EEE8' }}>
-              <label style={styles.label}>LuxVM Updates</label>
+              <label style={styles.label}>RZER Updates</label>
               <div style={{ fontSize: '12px', color: '#57534D', marginBottom: '10px' }} role="status">{updateStatus}</div>
               {updateProgress > 0 && updateProgress < 100 && (
                 <div style={{ height: '5px', background: '#E5E1D8', borderRadius: '5px', overflow: 'hidden', marginBottom: '10px' }}>
@@ -2139,15 +2163,15 @@ export default function App() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button type="button" onClick={checkForLuxVMUpdates} style={styles.secondaryBtn}>Check for updates</button>
+                <button type="button" onClick={checkForRZERUpdates} style={styles.secondaryBtn}>Check for updates</button>
                 {updateStatus.startsWith('Update ') && updateStatus.includes('available') && (
-                  <button type="button" onClick={downloadLuxVMUpdate} style={styles.secondaryBtn}>Download update</button>
+                  <button type="button" onClick={downloadRZERUpdate} style={styles.secondaryBtn}>Download update</button>
                 )}
                 {updateStatus.includes('ready to install') && (
-                  <button type="button" onClick={installLuxVMUpdate} style={styles.primaryBtn}>Restart and install</button>
+                  <button type="button" onClick={installRZERUpdate} style={styles.primaryBtn}>Restart and install</button>
                 )}
               </div>
-              <span style={{ display: 'block', fontSize: '11px', color: '#777168', marginTop: '8px' }}>Updates download from the public LuxVM releases repository. Your chats and settings remain stored locally.</span>
+              <span style={{ display: 'block', fontSize: '11px', color: '#777168', marginTop: '8px' }}>Updates download from the public RZER releases repository. Your chats and settings remain stored locally.</span>
             </div>
             )}
 
@@ -2223,6 +2247,14 @@ export default function App() {
               </div>
             </div>
 
+            <div style={{ ...styles.fieldRow, marginTop: '12px' }}>
+              <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={compactMathResults} onChange={(e) => setCompactMathResults(e.target.checked)} />
+                Compact huge math results
+              </label>
+              <span style={{ fontSize: '11px', color: '#777168' }}>When a result has more than 12,000 digits, show a compact exact summary instead of flooding the chat. Repeating single digits are shown as “digit repeated N times”.</span>
+            </div>
+
             <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
               <label style={styles.label}>Image generation provider</label>
               <select style={styles.input} value={imageProvider} onChange={(e) => setImageProvider(e.target.value as 'openrouter' | 'cloudflare')}>
@@ -2233,7 +2265,7 @@ export default function App() {
               <input style={styles.input} value={cloudflareWorkerUrl} onChange={(e) => setCloudflareWorkerUrl(e.target.value)} placeholder="https://luxvm-flux.your-subdomain.workers.dev" />
               <label style={{ ...styles.label, marginTop: '10px' }}>Cloudflare Worker access key</label>
               <input style={styles.input} type="password" value={cloudflareAccessKey} onChange={(e) => setCloudflareAccessKey(e.target.value)} placeholder="Your private Worker access key" autoComplete="off" />
-              <span style={{ fontSize: '11px', color: '#777168' }}>The Cloudflare API token stays on the Worker and is never embedded in LuxVM.</span>
+              <span style={{ fontSize: '11px', color: '#777168' }}>The Cloudflare API token stays on the Worker and is never embedded in RZER.</span>
             </div>
             <div style={{ ...styles.fieldRow, marginTop: '10px' }}>
               <label style={styles.label}>Permanent Personality / System Prompt</label>
@@ -2251,7 +2283,7 @@ export default function App() {
                   style={{ ...styles.input, minHeight: '58px', resize: 'vertical', fontFamily: 'inherit' }}
                   value={currentSession.memory || ''}
                   onChange={(e) => setSessions((prev) => prev.map((session) => session.id === currentSession.id ? { ...session, memory: e.target.value, updatedAt: Date.now() } : session))}
-                  placeholder="Facts or preferences LuxVM should retain in this conversation..."
+                  placeholder="Facts or preferences RZER should retain in this conversation..."
                 />
                 <span style={{ fontSize: '11px', color: '#777168' }}>Each chat has separate memory. Only details written here or explicitly marked “remember that” are saved as memory.</span>
               </div>
@@ -2303,7 +2335,7 @@ export default function App() {
                     data-luxvm-message={msg.role === 'user' ? 'user' : 'assistant'}
                   >
                     <div className="luxvm-message-meta" style={styles.meta}>
-                      <span>{msg.role === 'user' ? 'You' : msg.role === 'system' ? 'System' : 'LuxVM'}</span>
+                      <span>{msg.role === 'user' ? 'You' : msg.role === 'system' ? 'System' : 'RZER'}</span>
                       <span>{msg.timestamp}</span>
                     </div>
                     <div className="luxvm-message-content" style={styles.content}>{msg.content}</div>
@@ -2323,11 +2355,11 @@ export default function App() {
 
             <form data-luxvm-chat-composer onSubmit={sendChatMessage} style={styles.footer}>
               <button type="button" data-composer-tool title="Add files (coming soon)" aria-label="Add files" onClick={() => setComingSoonPage('Attachments')}>＋</button>
-              <input style={styles.chatInput} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask ChatGPT" disabled={isChatLoading} />
+              <input style={styles.chatInput} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask RZER" disabled={isChatLoading} />
               <button type="button" data-composer-tool data-microphone aria-label={isListening ? 'Stop microphone' : 'Use microphone'} title={isListening ? 'Stop listening' : 'Dictate a message'} onClick={toggleMicrophone} style={{ background: isListening ? '#C66A4A' : undefined, color: isListening ? '#fff' : undefined }}>◉</button>
               <button type="submit" style={styles.sendBtn} disabled={isChatLoading || !chatInput.trim()}>↑</button>
             </form>
-            <div className="luxvm-disclaimer">ChatGPT can make mistakes. Check important info.</div>
+            <div className="luxvm-disclaimer">RZER can make mistakes. Check important info.</div>
           </>
         )}
 
@@ -2568,7 +2600,7 @@ export default function App() {
           <section data-luxvm-coming-soon>
             <div className="luxvm-coming-icon">✦</div>
             <h1>{comingSoonPage}</h1>
-            <p>This part of LuxVM is not available yet. We’re preparing it for a future update.</p>
+            <p>This part of RZER is not available yet. We’re preparing it for a future update.</p>
             <span>COMING SOON</span>
             <button type="button" onClick={() => { setComingSoonPage(''); setActiveTab('chat') }}>Back to chat</button>
           </section>
@@ -2651,7 +2683,7 @@ export default function App() {
                     <a href={img.url} download={`luxvm-image-${img.id}.png`} style={{ ...styles.secondaryBtn, textDecoration: 'none' }}>
                       Download
                     </a>
-                    <button type="button" onClick={() => setReferenceImage({ url: img.url, name: `LuxVM image ${img.id}` })} style={styles.secondaryBtn} disabled={isImageLoading}>
+                    <button type="button" onClick={() => setReferenceImage({ url: img.url, name: `RZER image ${img.id}` })} style={styles.secondaryBtn} disabled={isImageLoading}>
                       Use as reference
                     </button>
                   </div>
@@ -2667,7 +2699,7 @@ export default function App() {
           <section style={styles.approvalModal} role="dialog" aria-modal="true" aria-labelledby="github-approval-title">
             <h3 id="github-approval-title" style={{ margin: '0 0 8px', fontSize: '16px' }}>Approve GitHub update</h3>
             <p style={{ margin: '0 0 14px', color: '#625C53', fontSize: '13px', lineHeight: 1.5 }}>
-              LuxVM is ready to write the generated Codex output to <strong>{githubRepo}</strong> on the <strong>main</strong> branch. Nothing is sent until you approve below.
+              RZER is ready to write the generated Codex output to <strong>{githubRepo}</strong> on the <strong>main</strong> branch. Nothing is sent until you approve below.
             </p>
             <label style={styles.label}>Target file path</label>
             <input style={styles.input} value={githubTargetPath} onChange={(e) => setGithubTargetPath(e.target.value)} placeholder="src/App.tsx" />
