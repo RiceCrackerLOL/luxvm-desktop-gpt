@@ -161,21 +161,23 @@ function classifyResponseTier(prompt: string): ResponseTier {
 function getDirectCalculatorAnswer(prompt: string): string | null {
   const expression = prompt.trim()
     .replace(/^(?:calculate|compute|evaluate|what is|what's|whats|how much is)\s+/i, '')
-    .replace(/[?=]+$/g, '')
+    .replace(/\braised\s+to\s+the\s+power\s+of\b|\braised\s+to\b|\bto\s+the\s+power\s+of\b|\bto\s+the\s+power\b/gi, '^')
     .replace(/\b(plus|added to)\b/gi, '+')
     .replace(/\b(minus|subtract)\b/gi, '-')
     .replace(/\b(times|multiplied by)\b/gi, '*')
     .replace(/\b(divided by|over)\b/gi, '/')
     .replace(/\b(squared)\b/gi, '^2')
     .replace(/\b(cubed)\b/gi, '^3')
+    .replace(/[?=]+$/g, '')
+    .replace(/,/g, '')
     .trim()
   if (!expression || expression.length > 500 || !/[0-9]/.test(expression)) return null
-  if (!/^[0-9a-zA-Z_\s()+\-*/%^.,!]+$/.test(expression)) return null
-  if (/\b(?:import|createUnit|evaluate|parse|simplify|derivative|help|version|config|typed|reviver|replacer)\b/i.test(expression)) return null
+  // Keep this fast path strictly numeric: no identifiers, functions, or arbitrary code.
+  if (!/^[0-9\s()+\-*/%^.,!]+$/.test(expression)) return null
   try {
     const result = preciseMath.evaluate(expression)
     if (result && typeof result.toString === 'function' && (preciseMath.isBigNumber(result) || typeof result === 'number')) {
-      const output = result.toString()
+      const output = preciseMath.isBigNumber(result) ? result.toFixed() : result.toString()
       if (output && output !== 'NaN' && output !== 'Infinity' && output !== '-Infinity') {
         return output
       }
@@ -875,6 +877,13 @@ export default function App() {
 
     try {
       const mathQuestion = isMathPrompt(trimmed)
+      if (mathQuestion) {
+        const directAnswer = getDirectCalculatorAnswer(trimmed)
+        if (directAnswer !== null) {
+          setSessions((prev) => prev.map((s) => s.id === currentSession.id ? { ...s, messages: [...s.messages, { id: String(Date.now() + 1), role: 'assistant', content: directAnswer, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }], updatedAt: Date.now() } : s))
+          return
+        }
+      }
       if (mathQuestion && !apiKey.trim()) {
         const sageCode = buildKeylessSageCode(trimmed)
         if (!sageCode) throw new Error('This maths question needs natural-language interpretation. Expressions, powers, derivatives, integrals, factoring and equations can be calculated without an API key. Add an API key for full word-problem interpretation.')
