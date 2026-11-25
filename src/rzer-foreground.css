@@ -1,0 +1,19 @@
+/* Theme-aware foreground correction for the redesigned RZER shell */
+[data-luxvm-theme][data-luxvm-theme] [data-luxvm-sidebar] *,
+[data-luxvm-theme][data-luxvm-theme] [data-luxvm-main] *{color:var(--rz-text)!important}
+[data-luxvm-theme][data-luxvm-theme] .luxvm-sidebar-header,
+[data-luxvm-theme][data-luxvm-theme] .luxvm-nav-icon,
+[data-luxvm-theme][data-luxvm-theme] .luxvm-account-copy small,
+[data-luxvm-theme][data-luxvm-theme] .luxvm-account-more,
+[data-luxvm-theme][data-luxvm-theme] .luxvm-message-meta,
+[data-luxvm-theme][data-luxvm-theme] .luxvm-disclaimer,
+[data-luxvm-theme][data-luxvm-theme] .rzer-nav-caption,
+[data-luxvm-theme][data-luxvm-theme] .rzer-sidebar-note,
+[data-luxvm-theme][data-luxvm-theme] .rzer-action-status{color:var(--rz-muted)!important}
+[data-luxvm-theme][data-luxvm-theme] [data-luxvm-chat-composer] input::placeholder,
+[data-luxvm-theme][data-luxvm-theme] input::placeholder,
+[data-luxvm-theme][data-luxvm-theme] textarea::placeholder{color:var(--rz-muted)!important}
+[data-luxvm-theme][data-luxvm-theme] [data-luxvm-chat-composer] button[type="submit"]{color:var(--rz-bg)!important;background:var(--rz-text)!important}
+[data-luxvm-theme][data-luxvm-theme] [data-luxvm-settings] input,
+[data-luxvm-theme][data-luxvm-theme] [data-luxvm-settings] textarea,
+[data-luxvm-theme][data-luxvm-theme] [data-luxvm-settings] select{color:var(--rz-text)!important;background:var(--rz-bg)!important}
