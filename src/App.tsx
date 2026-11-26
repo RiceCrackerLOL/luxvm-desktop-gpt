@@ -706,7 +706,7 @@ export default function App() {
     apiKey: '',
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
     models: DEFAULT_MODELS,
-    theme: 'light' as 'light' | 'dark',
+    theme: 'dark' as 'light' | 'dark',
     imageProvider: 'openrouter' as 'openrouter' | 'cloudflare',
     compactMathResults: true,
     cloudflareWorkerUrl: '',
@@ -811,6 +811,8 @@ export default function App() {
 
   const [chatInput, setChatInput] = useState('')
   const [isChatLoading, setIsChatLoading] = useState(false)
+  const [shareStatus, setShareStatus] = useState('')
+  const chatFileInputRef = useRef<HTMLInputElement | null>(null)
   const [apiStatus, setApiStatus] = useState('')
   const [isTestingApi, setIsTestingApi] = useState(false)
   const chatBottomRef = useRef<HTMLDivElement | null>(null)
@@ -831,6 +833,54 @@ export default function App() {
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [currentSession?.messages, isChatLoading, activeTab])
+
+  const shareCurrentChat = async () => {
+    const transcript = (currentSession?.messages || []).map((message) =>
+      (message.role === 'user' ? 'You' : 'RZER') + ':\n' + message.content
+    ).join('\n\n')
+    const shareText = (currentSession?.title || 'RZER conversation') + '\n\n' + transcript
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: currentSession?.title || 'RZER conversation', text: shareText })
+        setShareStatus('Shared')
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText)
+        setShareStatus('Conversation copied')
+      } else {
+        const area = document.createElement('textarea')
+        area.value = shareText
+        area.style.position = 'fixed'
+        area.style.opacity = '0'
+        document.body.appendChild(area)
+        area.select()
+        const copied = document.execCommand('copy')
+        area.remove()
+        setShareStatus(copied ? 'Conversation copied' : 'Could not copy conversation')
+      }
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') setShareStatus('Sharing is unavailable')
+    }
+    window.setTimeout(() => setShareStatus(''), 2600)
+  }
+
+  const handleChatFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    try {
+      if (file.size > 120000) {
+        setShareStatus('File is too large (120 KB maximum)')
+        window.setTimeout(() => setShareStatus(''), 2600)
+        return
+      }
+      const text = await file.text()
+      setChatInput((previous) => (previous ? previous + '\n\n' : '') + '[Attached file: ' + file.name + ']\n' + text)
+    } catch {
+      setShareStatus('Could not read that file')
+      window.setTimeout(() => setShareStatus(''), 2600)
+    } finally {
+      event.target.value = ''
+    }
+  }
 
   const createNewChat = () => {
     const newSession: ChatSession = {
@@ -2082,6 +2132,95 @@ export default function App() {
     }
     [data-luxvm-theme] input::placeholder,
     [data-luxvm-theme] textarea::placeholder { color:#a1a1a1 !important; }
+
+    /* RZER definitive visual layer — intentionally last to override legacy inline styling */
+    [data-luxvm-theme] { --rz-bg:#050505; --rz-side:#0b0b0b; --rz-panel:#111; --rz-raised:#171717; --rz-line:#262626; --rz-ink:#f5f5f5; --rz-muted:#929292; --rz-accent:#d8ff62; --rz-accent-ink:#101010; display:flex!important; width:100%!important; min-height:100vh!important; background:var(--rz-bg)!important; color:var(--rz-ink)!important; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif!important; }
+    [data-luxvm-theme="light"] { --rz-bg:#fafaf8; --rz-side:#f1f1ed; --rz-panel:#fff; --rz-raised:#f6f6f2; --rz-line:#e2e2dc; --rz-ink:#191a17; --rz-muted:#73756d; --rz-accent:#536d18; --rz-accent-ink:#fff; background:var(--rz-bg)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] button { font-family:inherit!important; transition:background .16s ease,border-color .16s ease,color .16s ease,transform .16s ease!important; }
+    [data-luxvm-theme] button:focus-visible,[data-luxvm-theme] input:focus-visible,[data-luxvm-theme] textarea:focus-visible,[data-luxvm-theme] select:focus-visible { outline:2px solid var(--rz-accent)!important; outline-offset:2px!important; }
+    [data-luxvm-theme] [data-luxvm-sidebar] { flex:0 0 252px!important; width:252px!important; min-width:252px!important; padding:20px 14px 14px!important; gap:0!important; background:var(--rz-side)!important; border-right:1px solid var(--rz-line)!important; box-shadow:none!important; }
+    [data-luxvm-theme] [data-luxvm-sidebar][data-collapsed="true"] { flex-basis:68px!important; width:68px!important; min-width:68px!important; padding:16px 8px!important; }
+    [data-luxvm-theme] .luxvm-sidebar-brand { min-height:54px!important; height:54px!important; padding:0 9px 16px!important; margin:0 0 17px!important; border:0!important; }
+    [data-luxvm-theme] .luxvm-brand-wordmark { font-size:24px!important; font-weight:850!important; letter-spacing:-.09em!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] .luxvm-sidebar-toggle { width:32px!important; height:32px!important; display:grid!important; place-items:center!important; border:1px solid var(--rz-line)!important; border-radius:9px!important; background:transparent!important; color:var(--rz-muted)!important; }
+    [data-luxvm-theme] [data-luxvm-sidebar-nav] { display:flex!important; flex-direction:column!important; gap:4px!important; padding:0 0 12px!important; max-height:none!important; overflow:visible!important; }
+    [data-luxvm-theme] [data-luxvm-sidebar-nav] button { min-height:42px!important; width:100%!important; padding:0 11px!important; display:flex!important; align-items:center!important; gap:0!important; border:1px solid transparent!important; border-radius:10px!important; background:transparent!important; color:var(--rz-muted)!important; font-size:13px!important; font-weight:550!important; text-align:left!important; }
+    [data-luxvm-theme] [data-luxvm-sidebar-nav] button:first-child { margin-bottom:9px!important; border-color:var(--rz-line)!important; background:var(--rz-panel)!important; color:var(--rz-ink)!important; font-weight:650!important; }
+    [data-luxvm-theme] [data-luxvm-sidebar-nav] button[aria-current="page"],[data-luxvm-theme] [data-luxvm-sidebar-nav] button:hover { background:var(--rz-raised)!important; border-color:var(--rz-line)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] .luxvm-nav-icon { width:25px!important; min-width:25px!important; margin-right:10px!important; color:var(--rz-muted)!important; font-size:16px!important; }
+    [data-luxvm-theme] .rzer-nav-caption,[data-luxvm-theme] .luxvm-sidebar-header { padding:15px 11px 7px!important; color:var(--rz-muted)!important; font-size:10px!important; font-weight:750!important; letter-spacing:.14em!important; text-transform:uppercase!important; }
+    [data-luxvm-theme] .rzer-sidebar-note { padding:8px 11px 13px!important; color:var(--rz-muted)!important; font-size:11px!important; }
+    [data-luxvm-theme] .luxvm-sidebar-divider { height:1px!important; margin:3px 5px 8px!important; background:var(--rz-line)!important; }
+    [data-luxvm-theme] [data-luxvm-session-list] { flex:1 1 auto!important; min-height:0!important; overflow:auto!important; padding:0 1px 10px!important; }
+    [data-luxvm-theme] .luxvm-session-item { min-height:37px!important; padding:6px 9px!important; border-radius:8px!important; color:var(--rz-muted)!important; background:transparent!important; }
+    [data-luxvm-theme] .luxvm-session-item:hover { background:var(--rz-raised)!important; }
+    [data-luxvm-theme] .luxvm-session-title { color:var(--rz-muted)!important; font-size:12px!important; }
+    [data-luxvm-theme] .luxvm-session-delete { color:var(--rz-muted)!important; background:transparent!important; }
+    [data-luxvm-theme] .luxvm-account-footer { flex:0 0 auto!important; margin-top:auto!important; padding-top:10px!important; border-top:1px solid var(--rz-line)!important; }
+    [data-luxvm-theme] .luxvm-account-button { width:100%!important; min-height:48px!important; display:flex!important; align-items:center!important; gap:10px!important; padding:6px 8px!important; border:0!important; border-radius:10px!important; background:transparent!important; color:var(--rz-ink)!important; text-align:left!important; }
+    [data-luxvm-theme] .luxvm-account-button:hover { background:var(--rz-raised)!important; }
+    [data-luxvm-theme] .luxvm-account-avatar { width:32px!important; height:32px!important; display:grid!important; place-items:center!important; border-radius:10px!important; background:var(--rz-accent)!important; color:var(--rz-accent-ink)!important; font-weight:850!important; }
+    [data-luxvm-theme] .luxvm-account-copy strong { color:var(--rz-ink)!important; font-size:12px!important; }
+    [data-luxvm-theme] .luxvm-account-copy small,[data-luxvm-theme] .luxvm-account-more { color:var(--rz-muted)!important; font-size:11px!important; }
+    [data-luxvm-theme] [data-luxvm-main] { flex:1 1 auto!important; min-width:0!important; min-height:0!important; height:100vh!important; background:var(--rz-bg)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] [data-luxvm-main] > header { height:58px!important; min-height:58px!important; flex:0 0 58px!important; padding:0 28px!important; border-bottom:1px solid var(--rz-line)!important; background:var(--rz-bg)!important; box-shadow:none!important; }
+    [data-luxvm-theme] .luxvm-chatgpt-topbar-left strong { color:var(--rz-ink)!important; font-size:13px!important; font-weight:650!important; }
+    [data-luxvm-theme] .luxvm-chatgpt-topbar-left button { width:34px!important; height:34px!important; border:1px solid var(--rz-line)!important; border-radius:9px!important; background:var(--rz-panel)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] .luxvm-chatgpt-topbar-actions { gap:8px!important; }
+    [data-luxvm-theme] .luxvm-chatgpt-topbar-actions button { min-height:34px!important; padding:0 12px!important; border:1px solid var(--rz-line)!important; border-radius:9px!important; background:transparent!important; color:var(--rz-muted)!important; font-size:12px!important; }
+    [data-luxvm-theme] .luxvm-chatgpt-topbar-actions button:hover { background:var(--rz-raised)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] [data-luxvm-chat-area] { width:min(100%,790px)!important; max-width:790px!important; flex:1 1 auto!important; min-height:0!important; margin:0 auto!important; padding:46px 26px 30px!important; gap:30px!important; overflow-y:auto!important; scrollbar-width:thin!important; scrollbar-color:#555 transparent!important; }
+    [data-luxvm-theme] .luxvm-welcome { align-items:flex-start!important; justify-content:center!important; text-align:left!important; padding:30px 0 90px!important; }
+    [data-luxvm-theme] .luxvm-welcome-mark { width:40px!important; height:40px!important; margin:0 0 26px!important; border:1px solid var(--rz-line)!important; border-radius:12px!important; background:var(--rz-accent)!important; color:var(--rz-accent-ink)!important; font-size:16px!important; }
+    [data-luxvm-theme] .luxvm-welcome h1 { max-width:620px!important; margin:0!important; color:var(--rz-ink)!important; font-size:clamp(36px,5vw,54px)!important; line-height:1.04!important; letter-spacing:-.07em!important; font-weight:680!important; }
+    [data-luxvm-theme] .luxvm-welcome p { margin:16px 0 30px!important; color:var(--rz-muted)!important; font-size:14px!important; line-height:1.65!important; }
+    [data-luxvm-theme] .luxvm-suggestions { justify-content:flex-start!important; gap:9px!important; }
+    [data-luxvm-theme] .luxvm-suggestions button { min-height:38px!important; padding:0 13px!important; border:1px solid var(--rz-line)!important; border-radius:9px!important; background:var(--rz-panel)!important; color:var(--rz-muted)!important; font-size:12px!important; }
+    [data-luxvm-theme] .luxvm-suggestions button:hover { background:var(--rz-raised)!important; color:var(--rz-ink)!important; border-color:#555!important; }
+    [data-luxvm-theme] [data-luxvm-chat-area] [data-luxvm-message="user"] { width:fit-content!important; max-width:min(78%,650px)!important; margin-left:auto!important; padding:12px 16px!important; border:1px solid var(--rz-line)!important; border-radius:15px!important; background:var(--rz-raised)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] [data-luxvm-chat-area] [data-luxvm-message="assistant"] { width:100%!important; max-width:100%!important; padding:0!important; border:0!important; border-radius:0!important; background:transparent!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] .luxvm-message-meta { margin-bottom:8px!important; color:var(--rz-muted)!important; font-size:10px!important; letter-spacing:.1em!important; text-transform:uppercase!important; }
+    [data-luxvm-theme] .luxvm-message-content { color:var(--rz-ink)!important; font-size:14px!important; line-height:1.85!important; white-space:pre-wrap!important; overflow-wrap:anywhere!important; }
+    [data-luxvm-theme] [data-luxvm-chat-composer] { width:min(calc(100% - 48px),760px)!important; max-width:760px!important; min-height:66px!important; margin:0 auto 4px!important; padding:8px 10px!important; gap:8px!important; border:1px solid var(--rz-line)!important; border-radius:15px!important; background:var(--rz-panel)!important; box-shadow:0 14px 45px rgba(0,0,0,.14)!important; }
+    [data-luxvm-theme] [data-luxvm-chat-composer]:focus-within { border-color:var(--rz-accent)!important; box-shadow:0 0 0 3px rgba(216,255,98,.08)!important; }
+    [data-luxvm-theme] [data-luxvm-chat-composer] input { min-width:0!important; min-height:44px!important; padding:10px 8px!important; border:0!important; background:transparent!important; color:var(--rz-ink)!important; font-size:14px!important; }
+    [data-luxvm-theme] [data-luxvm-chat-composer] input::placeholder { color:var(--rz-muted)!important; }
+    [data-luxvm-theme] [data-luxvm-chat-composer] [data-composer-tool] { width:36px!important; height:36px!important; flex:0 0 36px!important; border:0!important; border-radius:9px!important; background:transparent!important; color:var(--rz-muted)!important; font-size:18px!important; }
+    [data-luxvm-theme] [data-luxvm-chat-composer] [data-composer-tool]:hover { background:var(--rz-raised)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] [data-luxvm-chat-composer] button[type="submit"] { width:38px!important; height:38px!important; flex:0 0 38px!important; padding:0!important; border:0!important; border-radius:10px!important; background:var(--rz-accent)!important; color:var(--rz-accent-ink)!important; font-size:21px!important; }
+    [data-luxvm-theme] .luxvm-disclaimer { margin:7px auto 13px!important; color:var(--rz-muted)!important; font-size:10px!important; }
+    [data-luxvm-theme] [data-luxvm-settings] { background:var(--rz-panel)!important; color:var(--rz-ink)!important; border:1px solid var(--rz-line)!important; }
+    [data-luxvm-theme] [data-luxvm-settings] h3 { color:var(--rz-ink)!important; font-size:25px!important; letter-spacing:-.05em!important; }
+    [data-luxvm-theme] [data-luxvm-settings] p,[data-luxvm-theme] [data-luxvm-settings] span { color:var(--rz-muted)!important; }
+    [data-luxvm-theme] [data-luxvm-settings] label { color:var(--rz-ink)!important; font-size:12px!important; font-weight:650!important; }
+    [data-luxvm-theme] [data-luxvm-settings] input:not([type="checkbox"]),[data-luxvm-theme] [data-luxvm-settings] textarea,[data-luxvm-theme] [data-luxvm-settings] select { min-height:40px!important; padding:9px 11px!important; border:1px solid var(--rz-line)!important; border-radius:9px!important; background:var(--rz-bg)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] [data-luxvm-settings] button { min-height:36px!important; padding:0 12px!important; border:1px solid var(--rz-line)!important; border-radius:9px!important; background:var(--rz-raised)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] [data-luxvm-surface] { border-color:var(--rz-line)!important; border-radius:13px!important; background:var(--rz-panel)!important; color:var(--rz-ink)!important; box-shadow:none!important; }
+    [data-luxvm-theme] [data-luxvm-main] input:not([type="file"]),[data-luxvm-theme] [data-luxvm-main] textarea,[data-luxvm-theme] [data-luxvm-main] select { border:1px solid var(--rz-line)!important; border-radius:9px!important; background:var(--rz-bg)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] [data-luxvm-main] pre { overflow:auto!important; border:1px solid var(--rz-line)!important; border-radius:12px!important; background:#090909!important; color:#ededed!important; }
+    [data-luxvm-theme] .luxvm-search-panel { border:1px solid var(--rz-line)!important; border-radius:15px!important; background:var(--rz-panel)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] .luxvm-search-panel input { background:var(--rz-bg)!important; border:1px solid var(--rz-line)!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] .luxvm-search-results button { border-bottom:1px solid var(--rz-line)!important; background:transparent!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme] .luxvm-search-results strong { color:var(--rz-ink)!important; }
+    [data-luxvm-theme] .luxvm-search-results span,[data-luxvm-theme] .luxvm-search-results p { color:var(--rz-muted)!important; }
+    [data-luxvm-theme] .codexContainer,[data-luxvm-theme] [data-luxvm-chess] { color:var(--rz-ink)!important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] *,[data-luxvm-theme="light"] [data-luxvm-sidebar] * { color:inherit; }
+    [data-luxvm-theme="light"] .luxvm-brand-wordmark,[data-luxvm-theme="light"] .luxvm-welcome h1,[data-luxvm-theme="light"] .luxvm-message-content { color:var(--rz-ink)!important; }
+    [data-luxvm-theme="light"] [data-luxvm-chat-area] [data-luxvm-message="user"] { background:#f0f0eb!important; color:var(--rz-ink)!important; }
+    [data-luxvm-theme="light"] [data-luxvm-chat-composer] { background:#fff!important; }
+    [data-luxvm-theme="light"] [data-luxvm-main] pre { background:#171815!important; color:#f5f5f5!important; }
+    @media(max-width:760px) {
+      [data-luxvm-theme] [data-luxvm-sidebar] { position:fixed!important; inset:0 auto 0 0!important; z-index:100!important; width:min(290px,86vw)!important; min-width:min(290px,86vw)!important; height:100dvh!important; transform:translateX(-110%)!important; box-shadow:20px 0 60px rgba(0,0,0,.4)!important; transition:transform .2s ease!important; }
+      [data-luxvm-theme] [data-luxvm-sidebar][data-collapsed="false"] { transform:translateX(0)!important; }
+      [data-luxvm-theme] [data-luxvm-sidebar][data-collapsed="true"] { transform:translateX(-110%)!important; }
+      [data-luxvm-theme] .luxvm-sidebar-backdrop { position:fixed!important; inset:0!important; z-index:90!important; background:rgba(0,0,0,.62)!important; }
+      [data-luxvm-theme] [data-luxvm-main] > header { min-height:54px!important; height:54px!important; flex-basis:54px!important; padding:0 14px!important; }
+      [data-luxvm-theme] [data-luxvm-chat-area] { width:100%!important; padding:28px 19px 20px!important; gap:25px!important; }
+      [data-luxvm-theme] [data-luxvm-chat-composer] { width:calc(100% - 24px)!important; margin:0 12px 4px!important; }
+      [data-luxvm-theme] .luxvm-welcome h1 { font-size:36px!important; }
+      [data-luxvm-theme] .luxvm-suggestions { flex-direction:column!important; align-items:stretch!important; }
+      [data-luxvm-theme] .luxvm-suggestions button { text-align:left!important; }
+    }
   `}</style>
 
   return (
@@ -2093,15 +2232,17 @@ export default function App() {
           {!sidebarCollapsed && <strong className="luxvm-brand-wordmark">RZER</strong>}
           <button type="button" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} className="luxvm-sidebar-toggle" style={styles.sidebarToggle}>{sidebarCollapsed ? '›' : '‹'}</button>
         </div>
-        <nav data-luxvm-sidebar-nav style={styles.navMenu}>
-          <button type="button" title="New chat" aria-label="New chat" onClick={createNewChat} style={styles.navBtn}><span className="luxvm-nav-icon">▱</span>{!sidebarCollapsed && 'New chat'}</button>
-          <button type="button" title="Images" aria-label="Images" onClick={() => { setComingSoonPage(''); setActiveTab('image') }} style={styles.navBtn}><span className="luxvm-nav-icon">▧</span>{!sidebarCollapsed && 'Images'}</button>
-          <button type="button" title="Scheduled" aria-label="Scheduled" onClick={() => setComingSoonPage('Scheduled')} style={styles.navBtn}><span className="luxvm-nav-icon">◷</span>{!sidebarCollapsed && 'Scheduled'}</button>
-          <button type="button" title="Library" aria-label="Library" onClick={() => setComingSoonPage('Library')} style={styles.navBtn}><span className="luxvm-nav-icon">▤</span>{!sidebarCollapsed && 'Library'}</button>
-          <button type="button" title="Plugins" aria-label="Plugins" onClick={() => setComingSoonPage('Plugins')} style={styles.navBtn}><span className="luxvm-nav-icon">◎</span>{!sidebarCollapsed && 'Plugins'}</button>
-          <button type="button" title="Explore" aria-label="Explore" onClick={() => setComingSoonPage('Explore')} style={styles.navBtn}><span className="luxvm-nav-icon">⌘</span>{!sidebarCollapsed && 'Explore'}</button>
+        <nav data-luxvm-sidebar-nav style={styles.navMenu} aria-label="Main navigation">
+          <button type="button" title="New chat" aria-label="New chat" onClick={createNewChat} style={styles.navBtn}><span className="luxvm-nav-icon">＋</span>{!sidebarCollapsed && 'New chat'}</button>
+          <button type="button" title="Search conversations" aria-label="Search conversations" onClick={() => setSearchOpen(true)} style={styles.navBtn}><span className="luxvm-nav-icon">⌕</span>{!sidebarCollapsed && 'Search'}</button>
+          <div className="rzer-nav-caption">{!sidebarCollapsed && 'Workspaces'}</div>
+          <button type="button" title="Chat" aria-label="Chat" aria-current={activeTab === 'chat' ? 'page' : undefined} onClick={() => { setActiveTab('chat'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">▤</span>{!sidebarCollapsed && 'Chat'}</button>
+          <button type="button" title="Images" aria-label="Images" aria-current={activeTab === 'image' ? 'page' : undefined} onClick={() => { setActiveTab('image'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">▧</span>{!sidebarCollapsed && 'Image Studio'}</button>
+          <button type="button" title="Voice" aria-label="Voice" aria-current={activeTab === 'voice' ? 'page' : undefined} onClick={() => { setActiveTab('voice'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">◉</span>{!sidebarCollapsed && 'Voice'}</button>
+          <button type="button" title="Codex" aria-label="Codex" aria-current={activeTab === 'codex' ? 'page' : undefined} onClick={() => { setActiveTab('codex'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">⌘</span>{!sidebarCollapsed && 'Codex Studio'}</button>
+          <button type="button" title="Chess" aria-label="Chess" aria-current={activeTab === 'chess' ? 'page' : undefined} onClick={() => { setActiveTab('chess'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">♞</span>{!sidebarCollapsed && 'Chess'}</button>
         </nav>
-        {!sidebarCollapsed && <div className="luxvm-projects-block"><strong>Projects</strong><span>No projects</span></div>}
+        {!sidebarCollapsed && <div className="rzer-sidebar-note">Your workspace, in one place.</div>}
         {!sidebarCollapsed && <>
           <div className="luxvm-sidebar-divider" style={styles.divider} />
           <div className="luxvm-sidebar-header" style={styles.sidebarHeader}><span>Recents</span></div>
@@ -2120,7 +2261,7 @@ export default function App() {
             {!sidebarCollapsed && <span className="luxvm-account-copy"><strong>User</strong><small>Free</small></span>}
             {!sidebarCollapsed && <span className="luxvm-account-more" aria-hidden="true">•••</span>}
           </button>
-          {!sidebarCollapsed && <button type="button" className="luxvm-claim-offer" onClick={() => setComingSoonPage('Free offer')}>♔ <span>Claim offer</span></button>}
+
         </div>
       </aside>
 
@@ -2128,12 +2269,12 @@ export default function App() {
         <header className="luxvm-chatgpt-topbar" style={styles.header}>
           <div className="luxvm-chatgpt-topbar-left">
             {sidebarCollapsed && <button type="button" onClick={() => setSidebarCollapsed(false)} aria-label="Expand sidebar" title="Expand sidebar">☰</button>}
-            <strong>{activeTab === 'chat' ? (currentSession?.title || 'New chat') : activeTab === 'codex' ? 'Codex' : activeTab === 'chess' ? 'Chess' : 'Images'}</strong>
-            <span className="luxvm-topbar-chevron">⌄</span>
+            <strong>{activeTab === 'chat' ? (currentSession?.title || 'New chat') : activeTab === 'codex' ? 'Codex Studio' : activeTab === 'chess' ? 'Chess' : activeTab === 'voice' ? 'Voice' : 'Image Studio'}</strong>
           </div>
           <div className="luxvm-chatgpt-topbar-actions">
-            <button type="button" className="luxvm-free-offer" onClick={() => setComingSoonPage('Free offer')}>♔ <span>Free offer</span></button>
-            <button type="button" aria-label="Share" title="Share" onClick={() => setComingSoonPage('Share')}>⇧</button>
+            {shareStatus && <span className="rzer-action-status" role="status">{shareStatus}</span>}
+            <button type="button" aria-label="Share conversation" title="Share conversation" onClick={shareCurrentChat}>Share</button>
+            <button type="button" aria-label="Open settings" title="Settings" onClick={() => setShowSettings(true)}>Settings</button>
           </div>
         </header>
 
@@ -2301,7 +2442,7 @@ export default function App() {
             <main data-luxvm-chat-area style={styles.chatArea}>
               {(!currentSession || currentSession.messages.length === 0) && (
                 <section className="luxvm-welcome">
-                  <div className="luxvm-welcome-mark">L</div>
+                  <div className="luxvm-welcome-mark">R</div>
                   <h1>What can I help you with?</h1>
                   <p>Ask anything, work through a problem, or build something new.</p>
                   <div className="luxvm-suggestions">
@@ -2355,7 +2496,8 @@ export default function App() {
             </main>
 
             <form data-luxvm-chat-composer onSubmit={sendChatMessage} style={styles.footer}>
-              <button type="button" data-composer-tool title="Add files (coming soon)" aria-label="Add files" onClick={() => setComingSoonPage('Attachments')}>＋</button>
+              <input ref={chatFileInputRef} type="file" accept=".txt,.md,.json,.csv,.ts,.tsx,.js,.jsx,.py,.html,.css,.xml,.yaml,.yml,.log" onChange={handleChatFileUpload} style={{ display: 'none' }} />
+              <button type="button" data-composer-tool title="Attach a text or code file (120 KB max)" aria-label="Attach a text or code file" onClick={() => chatFileInputRef.current?.click()}>＋</button>
               <input style={styles.chatInput} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask RZER" disabled={isChatLoading} />
               <button type="button" data-composer-tool data-microphone aria-label={isListening ? 'Stop microphone' : 'Use microphone'} title={isListening ? 'Stop listening' : 'Dictate a message'} onClick={toggleMicrophone} style={{ background: isListening ? '#C66A4A' : undefined, color: isListening ? '#fff' : undefined }}>◉</button>
               <button type="submit" style={styles.sendBtn} disabled={isChatLoading || !chatInput.trim()}>↑</button>
@@ -2594,16 +2736,6 @@ export default function App() {
                 {sessions.filter((session) => !searchQuery.trim() || session.title.toLowerCase().includes(searchQuery.toLowerCase()) || session.messages.some((message) => message.content.toLowerCase().includes(searchQuery.toLowerCase()))).length === 0 && <p>No conversations match your search.</p>}
               </div>
             </div>
-          </section>
-        )}
-
-        {comingSoonPage && (
-          <section data-luxvm-coming-soon>
-            <div className="luxvm-coming-icon">✦</div>
-            <h1>{comingSoonPage}</h1>
-            <p>This part of RZER is not available yet. We’re preparing it for a future update.</p>
-            <span>COMING SOON</span>
-            <button type="button" onClick={() => { setComingSoonPage(''); setActiveTab('chat') }}>Back to chat</button>
           </section>
         )}
 
