@@ -121,7 +121,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       for(let i=0;i<8;i++) spawnEnemy()
       const raycaster=new THREE.Raycaster()
       const keys:Record<string,boolean>={}
-      let yaw=0,pitch=0,locked=false,healthNow=100,ammoNow=30,killsNow=0,level=1,lastShot=0,active=false,frame=0,reloading=false,reloadUntil=0,slideUntil=0,activeAbility=''
+      let yaw=0,pitch=0,locked=false,healthNow=100,ammoNow=30,killsNow=0,level=1,lastShot=0,active=false,frame=0,reloading=false,reloadUntil=0,slideUntil=0,muzzleUntil=0,activeAbility=''
       const bullets:any[]=[]
       const abilityNames=['Combat slide','Quick reload','Adrenaline','Armor plating','Explosive rounds','Overdrive']
       let unlocked=0
