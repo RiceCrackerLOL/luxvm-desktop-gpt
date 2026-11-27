@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react'
+import GameStudio from './GameStudio'
 import { all, create, evaluate as mathEvaluate, derivative as mathDerivative, simplify as mathSimplify } from 'mathjs'
 
 declare global {
@@ -13,7 +14,7 @@ declare global {
   }
 }
 
-type WorkspaceTab = 'chat' | 'voice' | 'codex' | 'chess' | 'image'
+type WorkspaceTab = 'chat' | 'voice' | 'codex' | 'chess' | 'image' | 'game'
 
 interface Message {
   id: string
@@ -2241,6 +2242,7 @@ export default function App() {
           <button type="button" title="Voice" aria-label="Voice" aria-current={activeTab === 'voice' ? 'page' : undefined} onClick={() => { setActiveTab('voice'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">◉</span>{!sidebarCollapsed && 'Voice'}</button>
           <button type="button" title="Codex" aria-label="Codex" aria-current={activeTab === 'codex' ? 'page' : undefined} onClick={() => { setActiveTab('codex'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">⌘</span>{!sidebarCollapsed && 'Codex Studio'}</button>
           <button type="button" title="Chess" aria-label="Chess" aria-current={activeTab === 'chess' ? 'page' : undefined} onClick={() => { setActiveTab('chess'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">♞</span>{!sidebarCollapsed && 'Chess'}</button>
+          <button type="button" title="Game Studio" aria-label="Game Studio" aria-current={activeTab === 'game' ? 'page' : undefined} onClick={() => { setActiveTab('game'); setComingSoonPage('') }} style={styles.navBtn}><span className="luxvm-nav-icon">▣</span>{!sidebarCollapsed && 'Game Studio'}</button>
         </nav>
         {!sidebarCollapsed && <div className="rzer-sidebar-note">Your workspace, in one place.</div>}
         {!sidebarCollapsed && <>
@@ -2269,7 +2271,7 @@ export default function App() {
         <header className="luxvm-chatgpt-topbar" style={styles.header}>
           <div className="luxvm-chatgpt-topbar-left">
             {sidebarCollapsed && <button type="button" onClick={() => setSidebarCollapsed(false)} aria-label="Expand sidebar" title="Expand sidebar">☰</button>}
-            <strong>{activeTab === 'chat' ? (currentSession?.title || 'New chat') : activeTab === 'codex' ? 'Codex Studio' : activeTab === 'chess' ? 'Chess' : activeTab === 'voice' ? 'Voice' : 'Image Studio'}</strong>
+            <strong>{activeTab === 'chat' ? (currentSession?.title || 'New chat') : activeTab === 'codex' ? 'Codex Studio' : activeTab === 'chess' ? 'Chess' : activeTab === 'voice' ? 'Voice' : activeTab === 'game' ? 'Game Studio' : 'Image Studio'}</strong>
           </div>
           <div className="luxvm-chatgpt-topbar-actions">
             {shareStatus && <span className="rzer-action-status" role="status">{shareStatus}</span>}
@@ -2738,6 +2740,8 @@ export default function App() {
             </div>
           </section>
         )}
+
+        {activeTab === 'game' && <GameStudio apiKey={apiKey} />}
 
         {activeTab === 'image' && (
           <div style={styles.imageContainer}>
