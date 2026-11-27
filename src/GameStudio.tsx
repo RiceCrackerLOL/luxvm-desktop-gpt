@@ -79,7 +79,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       renderer.shadowMap.type = THREE.PCFSoftShadowMap
       renderer.outputColorSpace = THREE.SRGBColorSpace
       renderer.toneMapping = THREE.ACESFilmicToneMapping
-      renderer.toneMappingExposure = 1.15
+      renderer.toneMappingExposure = 1.22
       renderer.domElement.style.width = '100%'
       renderer.domElement.style.height = '100%'
       renderer.domElement.style.display = 'block'
@@ -90,15 +90,18 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       sun.shadow.mapSize.set(2048, 2048)
       sun.shadow.camera.left = -70; sun.shadow.camera.right = 70; sun.shadow.camera.top = 70; sun.shadow.camera.bottom = -70
       scene.add(sun)
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), new THREE.MeshStandardMaterial({ color: 0x55554e, roughness: 0.96 }))
+      const makeSurfaceTexture=(base:number,variation:number,repeatX:number,repeatY:number)=>{const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;const ctx=canvas.getContext('2d');if(!ctx)return null;const image=ctx.createImageData(512,512);const r=(base>>16)&255,g=(base>>8)&255,b=base&255;for(let i=0;i<image.data.length;i+=4){const n=(Math.random()-.5)*variation;image.data[i]=Math.max(0,Math.min(255,r+n));image.data[i+1]=Math.max(0,Math.min(255,g+n));image.data[i+2]=Math.max(0,Math.min(255,b+n));image.data[i+3]=255}ctx.putImageData(image,0,0);for(let i=0;i<1800;i++){const x=Math.random()*512,y=Math.random()*512,size=Math.random()*2.5;ctx.fillStyle=`rgba(12,15,15,${Math.random()*.2})`;ctx.fillRect(x,y,size,size)}for(let i=0;i<22;i++){ctx.strokeStyle=`rgba(8,10,10,${Math.random()*.22})`;ctx.lineWidth=.5+Math.random()*1.5;ctx.beginPath();let x=Math.random()*512,y=Math.random()*512;ctx.moveTo(x,y);for(let j=0;j<4;j++){x+=(Math.random()-.5)*45;y+=(Math.random()-.5)*45;ctx.lineTo(x,y)}ctx.stroke()}const texture=new THREE.CanvasTexture(canvas);texture.wrapS=THREE.RepeatWrapping;texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(repeatX,repeatY);texture.colorSpace=THREE.SRGBColorSpace;return texture}
+      const concreteTexture=makeSurfaceTexture(0x77766d,46,3,3),asphaltTexture=makeSurfaceTexture(0x303436,30,8,24),metalTexture=makeSurfaceTexture(0x555d5d,58,2,2),skinTexture=makeSurfaceTexture(0x63704b,48,2,2)
+      weaponMetal.map=metalTexture;weaponMetal.bumpMap=metalTexture;weaponMetal.bumpScale=.025;weaponMetal.needsUpdate=true;weaponPolymer.map=metalTexture;weaponPolymer.needsUpdate=true
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), new THREE.MeshStandardMaterial({ color: 0x55554e, roughness: 0.96, map:concreteTexture, bumpMap:concreteTexture, bumpScale:.045 }))
       floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor)
-      const road = new THREE.Mesh(new THREE.PlaneGeometry(11,180),new THREE.MeshStandardMaterial({color:0x292f30,roughness:1}));road.rotation.x=-Math.PI/2;road.position.y=.025;road.receiveShadow=true;scene.add(road)
+      const road = new THREE.Mesh(new THREE.PlaneGeometry(11,180),new THREE.MeshStandardMaterial({color:0x292f30,roughness:1,map:asphaltTexture,bumpMap:asphaltTexture,bumpScale:.025}));road.rotation.x=-Math.PI/2;road.position.y=.025;road.receiveShadow=true;scene.add(road)
       const curbMat=new THREE.MeshStandardMaterial({color:0x77766e,roughness:.95})
       for(const side of [-1,1]){const curb=new THREE.Mesh(new THREE.BoxGeometry(.28,.22,180),curbMat);curb.position.set(side*5.65,.11,0);curb.castShadow=true;curb.receiveShadow=true;scene.add(curb)}
       const laneMat=new THREE.MeshStandardMaterial({color:0xb7a77e,roughness:.8})
       for(let z=-84;z<=84;z+=9){const dash=new THREE.Mesh(new THREE.BoxGeometry(.12,.025,3.2),laneMat);dash.position.set(0,.05,z);scene.add(dash)}
       const buildings: any[] = [], buildingDetails: any[] = []
-      const blockMat = [0x77766d,0x5c625f,0x8b8171,0x4c5356].map((c:number)=>new THREE.MeshStandardMaterial({color:c,roughness:.94}))
+      const blockMat = [0x77766d,0x5c625f,0x8b8171,0x4c5356].map((c:number)=>new THREE.MeshStandardMaterial({color:c,roughness:.94,map:concreteTexture,bumpMap:concreteTexture,bumpScale:.055}))
       const windowMat=new THREE.MeshStandardMaterial({color:0x20282b,roughness:.38,metalness:.2})
       for (let i=0;i<54;i++) {
         const x = (Math.random()-.5)*105, z = (Math.random()-.5)*105
@@ -118,14 +121,14 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       const enemies: any[] = []
       const enemyMat = new THREE.MeshStandardMaterial({color:0x526b42,roughness:.88})
       const helmetMat = new THREE.MeshStandardMaterial({color:0x252c20,roughness:.72})
-      const monsterFlesh = new THREE.MeshStandardMaterial({color:0x526b42,roughness:.82})
-      const monsterArmor = new THREE.MeshStandardMaterial({color:0x252d28,metalness:.32,roughness:.58})
+      const monsterFlesh = new THREE.MeshStandardMaterial({color:0x526b42,roughness:.82,map:skinTexture,bumpMap:skinTexture,bumpScale:.07})
+      const monsterArmor = new THREE.MeshStandardMaterial({color:0x252d28,metalness:.32,roughness:.58,map:metalTexture,bumpMap:metalTexture,bumpScale:.035})
       const monsterGlow = new THREE.MeshStandardMaterial({color:0xff402b,emissive:0xd51d0c,emissiveIntensity:2.2,roughness:.2})
       const buildAIArena = (cfg: GameConfig) => {
         while(aiMapGroup.children.length){const child=aiMapGroup.children.pop();if(child){child.parent=null;child.traverse((o:any)=>{o.geometry?.dispose?.();if(Array.isArray(o.material))o.material.forEach((m:any)=>m.dispose?.());else o.material?.dispose?.()})}}
         const style=(cfg.mapStyle||cfg.arena).toLowerCase(), complexity=Math.max(1,Math.min(5,Number(cfg.mapComplexity)||2))
         const industrial=style.includes('industrial')||style.includes('factory'), forest=style.includes('forest')||style.includes('woodland'), desert=style.includes('desert'), alien=style.includes('alien')||style.includes('organic')
-        const concrete=new THREE.MeshStandardMaterial({color:industrial?0x454b4d:forest?0x465443:desert?0x887252:alien?0x343d37:0x5b5c56,roughness:.94})
+        const concrete=new THREE.MeshStandardMaterial({color:industrial?0x454b4d:forest?0x465443:desert?0x887252:alien?0x343d37:0x5b5c56,roughness:.94,map:concreteTexture,bumpMap:concreteTexture,bumpScale:.055})
         const trim=new THREE.MeshStandardMaterial({color:industrial?0x202a2d:desert?0x51432f:0x343c3b,metalness:.45,roughness:.58})
         const glow=new THREE.MeshStandardMaterial({color:0x8c4b37,emissive:0x542014,emissiveIntensity:.45})
         for(let i=0;i<8+complexity*4;i++){
