@@ -50,6 +50,17 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       scene.fog = new THREE.FogExp2(0x87949a, 0.012)
       const camera = new THREE.PerspectiveCamera(76, root.clientWidth / Math.max(1, root.clientHeight), 0.1, 450)
       camera.position.set(0, 1.7, 12)
+      const weaponModel = new THREE.Group()
+      const weaponMetal = new THREE.MeshStandardMaterial({color:0x252b2b,metalness:.78,roughness:.32})
+      const weaponPolymer = new THREE.MeshStandardMaterial({color:0x111716,metalness:.12,roughness:.72})
+      const receiver = new THREE.Mesh(new THREE.BoxGeometry(.2,.16,.52),weaponMetal);receiver.position.set(.32,-.28,-.72);weaponModel.add(receiver)
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(.027,.027,.48,10),weaponMetal);barrel.rotation.x=Math.PI/2;barrel.position.set(.32,-.245,-1.13);weaponModel.add(barrel)
+      const handguard = new THREE.Mesh(new THREE.BoxGeometry(.14,.13,.34),weaponPolymer);handguard.position.set(.32,-.27,-.99);weaponModel.add(handguard)
+      const stock = new THREE.Mesh(new THREE.BoxGeometry(.15,.13,.28),weaponPolymer);stock.position.set(.32,-.29,-.38);weaponModel.add(stock)
+      const sight = new THREE.Mesh(new THREE.BoxGeometry(.075,.09,.12),weaponMetal);sight.position.set(.32,-.165,-.78);weaponModel.add(sight)
+      const muzzleFlash = new THREE.Mesh(new THREE.SphereGeometry(.085,8,8),new THREE.MeshBasicMaterial({color:0xffc46b}));muzzleFlash.position.set(.32,-.245,-1.39);muzzleFlash.visible=false;weaponModel.add(muzzleFlash)
+      const muzzleLight = new THREE.PointLight(0xffa44d,0,5);muzzleLight.position.copy(muzzleFlash.position);weaponModel.add(muzzleLight)
+      camera.add(weaponModel)
       const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75))
       renderer.setSize(canvasLayer.clientWidth || root.clientWidth, canvasLayer.clientHeight || root.clientHeight)
@@ -113,7 +124,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       const onUp=(e:KeyboardEvent)=>{keys[e.code]=false}
       const onMove=(e:MouseEvent)=>{if(!locked)return;yaw-=e.movementX*.0022;pitch-=e.movementY*.0022;pitch=Math.max(-1.25,Math.min(1.25,pitch))}
       const onLock=()=>{locked=document.pointerLockElement===renderer.domElement}
-      const onClick=()=>{if(!locked){renderer.domElement.requestPointerLock?.();return}if(!active||reloading||ammoNow<=0)return;const cooldown=activeAbility==='Overdrive'?75:135;if(performance.now()-lastShot<cooldown)return;lastShot=performance.now();ammoNow--;setAmmo(ammoNow);camera.rotation.set(pitch,yaw,0,'YXZ');raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hit=raycaster.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.mesh.children),true)[0];if(hit){const enemy=enemies.find(e=>e.alive&&e.mesh===hit.object.parent);if(enemy){enemy.hp-=activeAbility==='Explosive rounds'?100:50;if(enemy.hp<=0){enemy.alive=false;enemyGroup.remove(enemy.mesh);killsNow++;setKills(killsNow)}}}}
+      const onClick=()=>{if(!locked){renderer.domElement.requestPointerLock?.();return}if(!active||reloading||ammoNow<=0)return;const cooldown=activeAbility==='Overdrive'?75:135;if(performance.now()-lastShot<cooldown)return;lastShot=performance.now();muzzleUntil=performance.now()+65;ammoNow--;setAmmo(ammoNow);camera.rotation.set(pitch,yaw,0,'YXZ');raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hit=raycaster.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.mesh.children),true)[0];const tracerEnd=hit?.point||camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(55));const tracerStart=camera.localToWorld(new THREE.Vector3(.32,-.245,-1.39));const tracerGeometry=new THREE.BufferGeometry().setFromPoints([tracerStart,tracerEnd]);const tracer=new THREE.Line(tracerGeometry,new THREE.LineBasicMaterial({color:0xffd18a,transparent:true,opacity:.9}));scene.add(tracer);bullets.push({mesh:tracer,dir:new THREE.Vector3(),life:.075});if(hit){const enemy=enemies.find(e=>e.alive&&e.mesh===hit.object.parent);if(enemy){enemy.hp-=activeAbility==='Explosive rounds'?100:50;if(enemy.hp<=0){enemy.alive=false;enemyGroup.remove(enemy.mesh);killsNow++;setKills(killsNow)}}}}
       renderer.domElement.addEventListener('click',onClick)
       window.addEventListener('keydown',onKey);window.addEventListener('keyup',onUp);window.addEventListener('mousemove',onMove);document.addEventListener('pointerlockchange',onLock)
       const resize=()=>{const width=canvasLayer.clientWidth,height=canvasLayer.clientHeight;if(!width||!height)return;camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height)}
@@ -127,7 +138,8 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
         }
         if(active&&reloading&&performance.now()>=reloadUntil){ammoNow=30;reloading=false;setAmmo(ammoNow);setStatus('Magazine reloaded.')}
         enemies.forEach(e=>{if(!active||!e.alive)return;const dx=camera.position.x-e.mesh.position.x,dz=camera.position.z-e.mesh.position.z,dist=Math.max(.001,Math.hypot(dx,dz));e.mesh.rotation.y=Math.atan2(dx,dz);if(dist>8){const boost=performance.now()<slideUntil?2.1:1;e.mesh.position.x+=(dx/dist)*dt*(.48+level*.13)*boost;e.mesh.position.z+=(dz/dist)*dt*(.48+level*.13)*boost}if(dist<27&&performance.now()>e.nextShot){e.nextShot=performance.now()+Math.max(650,2500-level*170);if(Math.random()<Math.min(.82,.28+level*.035)){const armor=activeAbility==='Armor plating'?.45:1;healthNow=Math.max(0,healthNow-(level>5?5:3)*armor);setHealth(Math.round(healthNow))}}})
-        bullets.forEach((b,i)=>{b.life-=dt;b.mesh.position.addScaledVector(b.dir,dt*95);if(b.life<=0){scene.remove(b.mesh);bullets.splice(i,1)}})
+        bullets.forEach((b,i)=>{b.life-=dt;b.mesh.position.addScaledVector(b.dir,dt*95);if(b.mesh.material?.opacity!==undefined)b.mesh.material.opacity=Math.max(0,b.life/.075);if(b.life<=0){scene.remove(b.mesh);b.mesh.geometry?.dispose?.();b.mesh.material?.dispose?.();bullets.splice(i,1)}})
+        const flashActive=performance.now()<muzzleUntil;muzzleFlash.visible=flashActive;muzzleLight.intensity=flashActive?2.4:0
         if(active&&healthNow<=0){active=false;setRunning(false);setStatus('You were eliminated. Restart the operation to try again.');document.exitPointerLock?.()}
         if(active&&frame>level*38){level++;setWave(level);activeAbility=abilityNames[(unlocked++)%abilityNames.length];setAbility(activeAbility);healthNow=Math.min(100,healthNow+12);setHealth(Math.round(healthNow));ammoNow=30;reloading=false;setAmmo(30);for(let i=0;i<Math.min(4,1+level);i++)spawnEnemy();setStatus('Combat director adapted: '+activeAbility+' unlocked. Threat pressure increased.')}
         if(active&&enemies.filter(e=>e.alive).length<4){for(let i=0;i<2+Math.min(level,4);i++)spawnEnemy()}
