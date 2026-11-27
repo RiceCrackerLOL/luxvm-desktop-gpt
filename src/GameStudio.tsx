@@ -47,8 +47,8 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       canvasLayer.className = 'rzer-game-canvas'
       root.appendChild(canvasLayer)
       const scene = new THREE.Scene()
-      scene.background = new THREE.Color(0x87949a)
-      scene.fog = new THREE.FogExp2(0x87949a, 0.012)
+      scene.background = new THREE.Color(0x91b9d5)
+      scene.fog = new THREE.FogExp2(0x91b9d5, 0.009)
       const camera = new THREE.PerspectiveCamera(76, root.clientWidth / Math.max(1, root.clientHeight), 0.1, 450)
       camera.position.set(0, 1.7, 12)
       scene.add(camera)
@@ -79,12 +79,14 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       renderer.shadowMap.type = THREE.PCFSoftShadowMap
       renderer.outputColorSpace = THREE.SRGBColorSpace
       renderer.toneMapping = THREE.ACESFilmicToneMapping
-      renderer.toneMappingExposure = 1.22
+      renderer.toneMappingExposure = 1.35
+      renderer.setClearColor(0x91b9d5)
       renderer.domElement.style.width = '100%'
       renderer.domElement.style.height = '100%'
       renderer.domElement.style.display = 'block'
       canvasLayer.appendChild(renderer.domElement)
-      scene.add(new THREE.HemisphereLight(0xc8d9e4, 0x454039, 2.0))
+      scene.add(new THREE.HemisphereLight(0xdaf1ff, 0x51415e, 2.35))
+      scene.add(new THREE.DirectionalLight(0xffe2f0,1.1))
       const sun = new THREE.DirectionalLight(0xffd3a0, 3.2)
       sun.position.set(-35, 55, 25); sun.castShadow = true
       sun.shadow.mapSize.set(2048, 2048)
@@ -119,10 +121,13 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       const enemyGroup = new THREE.Group(); scene.add(enemyGroup)
       const aiMapGroup = new THREE.Group(); scene.add(aiMapGroup)
       const enemies: any[] = []
-      const enemyMat = new THREE.MeshStandardMaterial({color:0x526b42,roughness:.88})
-      const helmetMat = new THREE.MeshStandardMaterial({color:0x252c20,roughness:.72})
-      const monsterFlesh = new THREE.MeshStandardMaterial({color:0x526b42,roughness:.82,map:skinTexture,bumpMap:skinTexture,bumpScale:.07})
-      const monsterArmor = new THREE.MeshStandardMaterial({color:0x252d28,metalness:.32,roughness:.58,map:metalTexture,bumpMap:metalTexture,bumpScale:.035})
+      const worldGenGroup = new THREE.Group(); scene.add(worldGenGroup)
+      const worldChunks: any[] = []
+      let nextWorldGen = 0
+      const enemyMat = new THREE.MeshToonMaterial({color:0x526b42})
+      const helmetMat = new THREE.MeshToonMaterial({color:0x252c20})
+      const monsterFlesh = new THREE.MeshToonMaterial({color:0x526b42})
+      const monsterArmor = new THREE.MeshToonMaterial({color:0x252d28})
       const monsterGlow = new THREE.MeshStandardMaterial({color:0xff402b,emissive:0xd51d0c,emissiveIntensity:2.2,roughness:.2})
       const buildAIArena = (cfg: GameConfig) => {
         while(aiMapGroup.children.length){const child=aiMapGroup.children.pop();if(child){child.parent=null;child.traverse((o:any)=>{o.geometry?.dispose?.();if(Array.isArray(o.material))o.material.forEach((m:any)=>m.dispose?.());else o.material?.dispose?.()})}}
@@ -161,24 +166,30 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       const spawnEnemy = () => {
         const g=new THREE.Group(), limbs:any[]=[]
         const gameCfg=engine.current?.config||DEFAULT_CONFIG,roster=Array.isArray(gameCfg.enemyRoster)?gameCfg.enemyRoster:[],chosen=roster.length?roster[Math.floor(Math.random()*roster.length)]:null
-        const variant=String(chosen?.type||gameCfg.enemyVariant||gameCfg.enemies||'mutant').toLowerCase()
-        const robot=variant.includes('robot')||variant.includes('mech')||variant.includes('cyber'), alien=variant.includes('alien')||variant.includes('xeno'), brute=variant.includes('brute')||variant.includes('demon')||variant.includes('monster')
-        const skin=robot?monsterArmor:monsterFlesh, armor=robot?helmetMat:monsterArmor
-        const torso=new THREE.Mesh(new THREE.CapsuleGeometry(brute?.48:.37,brute?1.0:.8,6,12),skin);torso.position.y=1.18;torso.castShadow=true;torso.receiveShadow=true;g.add(torso)
-        const chest=new THREE.Mesh(new THREE.BoxGeometry(brute?1.02:.72,.48,.38),armor);chest.position.set(0,1.34,-.12);chest.castShadow=true;g.add(chest)
-        const head=new THREE.Mesh(robot?new THREE.BoxGeometry(.48,.46,.42):new THREE.SphereGeometry(alien?.29:.25,16,12),skin);head.position.set(0,1.92,-.02);head.castShadow=true;g.add(head)
-        const jaw=new THREE.Mesh(new THREE.BoxGeometry(.3,.13,.28),armor);jaw.position.set(0,1.73,-.16);g.add(jaw)
-        for(const side of [-1,1]){const eye=new THREE.Mesh(new THREE.SphereGeometry(robot?.075:.065,10,8),monsterGlow);eye.position.set(side*.115,1.96,-.235);g.add(eye);const shoulder=new THREE.Mesh(new THREE.SphereGeometry(.23,10,8),armor);shoulder.position.set(side*.47,1.48,0);shoulder.castShadow=true;g.add(shoulder)
-          const arm=new THREE.Group();arm.position.set(side*.48,1.38,0);const upper=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.48,4,8),skin);upper.position.y=-.29;upper.castShadow=true;arm.add(upper);const fore=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.42,4,8),armor);fore.position.set(0,-.68,-.06);fore.castShadow=true;arm.add(fore);const claw=new THREE.Mesh(new THREE.ConeGeometry(.09,.34,7),skin);claw.position.set(0,-.98,-.16);claw.rotation.x=-.7;arm.add(claw);g.add(arm);limbs.push({mesh:arm,side,kind:'arm'})
-          const leg=new THREE.Group();leg.position.set(side*.2,.68,0);const thigh=new THREE.Mesh(new THREE.CapsuleGeometry(.15,.52,4,8),armor);thigh.position.y=-.28;thigh.castShadow=true;leg.add(thigh);const shin=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.46,4,8),skin);shin.position.set(0,-.67,-.04);shin.castShadow=true;leg.add(shin);const foot=new THREE.Mesh(new THREE.BoxGeometry(.24,.14,.42),armor);foot.position.set(0,-.94,-.13);leg.add(foot);g.add(leg);limbs.push({mesh:leg,side,kind:'leg'})
+        const team=Math.floor(Math.random()*3),teamColors=[0xff5478,0x49c9ff,0xffd166],teamColor=teamColors[team]
+        const toon=(color:number)=>new THREE.MeshToonMaterial({color,gradientMap:null})
+        const ink=new THREE.MeshBasicMaterial({color:0x171526,side:THREE.BackSide})
+        const body=toon(teamColor),dark=toon(0x25243b),skin=toon(team===0?0xffd0bd:team===1?0xffdfc2:0xf4c6a4),hair=toon([0x27213e,0x1d2638,0x6b2d55,0xe7a83e][Math.floor(Math.random()*4)]),white=toon(0xffffff),iris=toon(teamColor)
+        const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.65,5,10),body);torso.position.y=1.15;torso.castShadow=true;g.add(torso)
+        const chest=new THREE.Mesh(new THREE.BoxGeometry(.68,.42,.34),dark);chest.position.set(0,1.25,-.12);g.add(chest)
+        const head=new THREE.Mesh(new THREE.SphereGeometry(.34,16,12),skin);head.position.set(0,1.91,-.03);head.scale.set(1,1.12,.9);head.castShadow=true;g.add(head)
+        const headInk=new THREE.Mesh(new THREE.SphereGeometry(.35,16,12),ink);headInk.position.copy(head.position);headInk.scale.copy(head.scale).multiplyScalar(1.055);g.add(headInk);headInk.renderOrder=1
+        const fringe=new THREE.Mesh(new THREE.ConeGeometry(.39,.5,7),hair);fringe.position.set(0,2.17,-.02);fringe.rotation.x=.12;g.add(fringe)
+        for(let k=0;k<3;k++){const spike=new THREE.Mesh(new THREE.ConeGeometry(.13,.42,5),hair);spike.position.set((k-1)*.22,2.32,.02);spike.rotation.z=(k-1)*-.35;g.add(spike)}
+        for(const side of [-1,1]){const eyeWhite=new THREE.Mesh(new THREE.SphereGeometry(.105,12,10),white);eyeWhite.position.set(side*.13,1.96,-.323);eyeWhite.scale.set(1,.72,.5);g.add(eyeWhite);const eye=new THREE.Mesh(new THREE.SphereGeometry(.067,12,10),iris);eye.position.set(side*.13,1.955,-.367);eye.scale.set(.8,1,.45);g.add(eye);const shine=new THREE.Mesh(new THREE.SphereGeometry(.022,8,8),white);shine.position.set(side*.145,1.99,-.385);g.add(shine)}
+        for(const side of [-1,1]){
+          const shoulder=new THREE.Mesh(new THREE.SphereGeometry(.19,10,8),dark);shoulder.position.set(side*.43,1.42,0);g.add(shoulder)
+          const arm=new THREE.Group();arm.position.set(side*.43,1.34,0);const upper=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.38,4,8),body);upper.position.y=-.23;arm.add(upper);const fore=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.34,4,8),skin);fore.position.set(0,-.57,-.06);arm.add(fore);g.add(arm);limbs.push({mesh:arm,side,kind:'arm'})
+          const leg=new THREE.Group();leg.position.set(side*.18,.68,0);const thigh=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.42,4,8),dark);thigh.position.y=-.23;leg.add(thigh);const boot=new THREE.Mesh(new THREE.BoxGeometry(.22,.15,.34),body);boot.position.set(0,-.55,-.1);leg.add(boot);g.add(leg);limbs.push({mesh:leg,side,kind:'leg'})
         }
-        for(let i=0;i<(brute?5:3);i++){const spike=new THREE.Mesh(new THREE.ConeGeometry(.09,.42,6),armor);spike.position.set((i-2)*.17,1.66, .2);spike.rotation.x=-.35;g.add(spike)}
-        const weapon=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.72),robot?armor:new THREE.MeshStandardMaterial({color:0x242b27,metalness:.55,roughness:.4}));weapon.position.set(.31,1.18,-.4);g.add(weapon);if(alien){for(const side of [-1,1]){const tendril=new THREE.Mesh(new THREE.CylinderGeometry(.025,.07,.62,7),skin);tendril.position.set(side*.2,1.55,-.28);tendril.rotation.z=side*.55;tendril.rotation.x=-.45;g.add(tendril)}}
-        const angle=Math.random()*Math.PI*2,dist=19+Math.random()*23
+        const blade=new THREE.Mesh(new THREE.BoxGeometry(.09,.09,.66),toon(0x20283c));blade.position.set(.28,1.15,-.38);g.add(blade)
+        const angle=Math.random()*Math.PI*2,dist=14+Math.random()*34
         g.position.set(camera.position.x+Math.cos(angle)*dist,0,camera.position.z+Math.sin(angle)*dist)
-        enemyGroup.add(g);if(chosen?.color){const c=parseInt(String(chosen.color).replace('#',''),16);if(Number.isFinite(c)){torso.material=skin.clone();torso.material.color.setHex(c)}}if(chosen?.accent){const c=parseInt(String(chosen.accent).replace('#',''),16);if(Number.isFinite(c))monsterGlow.color.setHex(c)}const scale=Math.max(.65,Math.min(1.8,Number(chosen?.scale)||1));g.scale.setScalar(scale);enemies.push({mesh:g,hp:Math.max(20,Math.min(500,Number(chosen?.health)||(brute?180:100))),damage:Math.max(2,Math.min(50,Number(chosen?.damage)||12)),speed:Math.max(.5,Math.min(8,Number(chosen?.speed)||1)),nextShot:performance.now()+1500+Math.random()*2500,alive:true,limbs,phase:Math.random()*6,strafe:Math.random()<.5?-1:1,variant:robot?'robot':alien?'alien':brute?'brute':'mutant'})
+        enemyGroup.add(g)
+        const scale=Math.max(.75,Math.min(1.3,Number(chosen?.scale)||(.92+Math.random()*.2)));g.scale.setScalar(scale)
+        enemies.push({mesh:g,hp:Math.max(45,Math.min(360,Number(chosen?.health)||95)),maxHp:Math.max(45,Math.min(360,Number(chosen?.health)||95)),damage:Math.max(5,Math.min(28,Number(chosen?.damage)||9)),speed:.9+Math.random()*.85,nextShot:performance.now()+800+Math.random()*2400,alive:true,limbs,phase:Math.random()*6,strafe:Math.random()<.5?-1:1,team,teamColor,variant:'anime',target:null,targetAt:0,respawnAt:0})
       }
-      {const roster=engine.current?.config?.enemyRoster||[],count=roster.length?roster.reduce((sum:number,item:any)=>sum+Math.max(1,Math.min(8,Number(item.count)||2)),0):8;for(let i=0;i<Math.max(4,Math.min(16,count));i++)spawnEnemy()}
+      {for(let i=0;i<18;i++)spawnEnemy()}
       const raycaster=new THREE.Raycaster()
       const keys:Record<string,boolean>={}
       let yaw=0,pitch=0,locked=false,healthNow=100,ammoNow=30,killsNow=0,level=1,lastShot=0,active=false,frame=0,reloading=false,reloadUntil=0,slideUntil=0,muzzleUntil=0,activeAbility=''
@@ -202,7 +213,45 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
           camera.position.y=keys.Space?2.35:1.7;camera.rotation.set(pitch,yaw,0,'YXZ')
         }
         if(active&&reloading&&performance.now()>=reloadUntil){ammoNow=Math.max(8,Math.min(60,Number(engine.current?.config?.weaponBlueprint?.ammo)||30));reloading=false;setAmmo(ammoNow);setStatus('Magazine reloaded.')}
-        enemies.forEach(e=>{if(!active||!e.alive)return;const dx=camera.position.x-e.mesh.position.x,dz=camera.position.z-e.mesh.position.z,dist=Math.max(.001,Math.hypot(dx,dz)),t=performance.now()*.001+e.phase;e.mesh.rotation.y=Math.atan2(dx,dz);e.mesh.position.y=Math.abs(Math.sin(t*5))*.055;e.limbs.forEach((l:any)=>{const swing=Math.sin(t*7)*(dist>3?.62:.18);l.mesh.rotation.x=l.kind==='leg'?swing*l.side:-swing*l.side*.72});if(dist>8){const behavior=(engine.current?.config?.enemyBehavior||'').toLowerCase(),aggressive=behavior.includes('rush')||behavior.includes('aggressive'),flanking=behavior.includes('flank')||behavior.includes('ambush'),boost=(performance.now()<slideUntil?2.1:1)*(aggressive?1.35:1),flank=flanking?e.strafe*Math.sin(t*.7)*.42:0;e.mesh.position.x+=(dx/dist+flank)*dt*(.58+level*.15)*Math.max(.65,Math.min(2.5,e.speed||1))*boost;e.mesh.position.z+=(dz/dist)*dt*(.58+level*.15)*boost}else if(dist<3){e.mesh.position.x-=(dx/dist)*dt*.55;e.mesh.position.z-=(dz/dist)*dt*.55}if(dist<27&&performance.now()>e.nextShot){e.nextShot=performance.now()+Math.max(600,2200-level*150);if(Math.random()<Math.min(.88,.32+level*.04)){const armor=activeAbility==='Armor plating'?.45:1,behavior=(engine.current?.config?.enemyBehavior||'').toLowerCase(),damage=Math.max(1,Math.min(35,Number(e.damage)|| (behavior.includes('heavy')||behavior.includes('brutal')?6:behavior.includes('swarm')?2:e.variant==='robot'?4:e.variant==='alien'?5:3)));healthNow=Math.max(0,healthNow-damage*armor);setHealth(Math.round(healthNow))}}})
+        enemies.forEach(e=>{
+          if(!e.alive)return
+          const t=performance.now()*.001+e.phase
+          if(performance.now()>e.targetAt||!e.target?.alive){let best:any=null,bestDist=Infinity;for(const other of enemies){if(!other.alive||other===e||other.team===e.team)continue;const d=e.mesh.position.distanceTo(other.mesh.position);if(d<bestDist){best=other;bestDist=d}}e.target=best;e.targetAt=performance.now()+450+Math.random()*500}
+          const target=e.target
+          if(target?.alive){
+            const dx=target.mesh.position.x-e.mesh.position.x,dz=target.mesh.position.z-e.mesh.position.z,dist=Math.max(.001,Math.hypot(dx,dz))
+            e.mesh.rotation.y=Math.atan2(dx,dz)
+            e.mesh.position.y=Math.abs(Math.sin(t*7))*.045
+            e.limbs.forEach((l:any)=>{const swing=Math.sin(t*9)*(dist>3?.68:.2);l.mesh.rotation.x=l.kind==='leg'?swing*l.side:-swing*l.side*.7})
+            if(dist>8){e.mesh.position.x+=(dx/dist)*dt*(1.7*e.speed);e.mesh.position.z+=(dz/dist)*dt*(1.7*e.speed)}
+            else if(dist<5){e.mesh.position.x-=(dx/dist)*dt*.5;e.mesh.position.z-=(dz/dist)*dt*.5}
+            if(dist<25&&performance.now()>e.nextShot){
+              e.nextShot=performance.now()+700+Math.random()*900
+              const start=e.mesh.position.clone().add(new THREE.Vector3(0,1.45,0)),end=target.mesh.position.clone().add(new THREE.Vector3(0,1.3,0))
+              const beam=new THREE.Line(new THREE.BufferGeometry().setFromPoints([start,end]),new THREE.LineBasicMaterial({color:e.teamColor,transparent:true,opacity:.95}))
+              scene.add(beam);setTimeout(()=>{scene.remove(beam);beam.geometry.dispose();beam.material.dispose()},130)
+              if(Math.random()<.78){target.hp-=e.damage;if(target.hp<=0){target.alive=false;target.respawnAt=performance.now()+1800+Math.random()*3000;enemyGroup.remove(target.mesh)}}
+            }
+          }else if(performance.now()>e.nextShot)e.nextShot=performance.now()+400
+          if(active){const pdx=camera.position.x-e.mesh.position.x,pdz=camera.position.z-e.mesh.position.z,pdist=Math.hypot(pdx,pdz);if(pdist<18&&performance.now()>e.playerShot){e.playerShot=performance.now()+1800+Math.random()*1700;if(Math.random()<.18){const armor=activeAbility==='Armor plating'?.45:1;healthNow=Math.max(0,healthNow-e.damage*.35*armor);setHealth(Math.round(healthNow))}}}
+        })
+        const aliveNow=enemies.filter(e=>e.alive).length
+        enemies.forEach(e=>{if(!e.alive&&performance.now()>e.respawnAt){e.alive=true;e.hp=e.maxHp;e.mesh.position.set(camera.position.x+(Math.random()-.5)*70,0,camera.position.z-24-Math.random()*35);enemyGroup.add(e.mesh)}})
+        if(enemies.length<24&&performance.now()>nextWorldGen-1200){for(let i=0;i<Math.min(3,24-enemies.length);i++)spawnEnemy()}
+        if(performance.now()>nextWorldGen){
+          nextWorldGen=performance.now()+8500
+          const chunk=new THREE.Group(),palette=[0x63c6a5,0xffb86b,0x9d8cff,0x5d8fff,0xff719d],tone=palette[Math.floor(Math.random()*palette.length)]
+          const cx=(Math.random()-.5)*90,cz=(Math.random()-.5)*90
+          for(let i=0;i<5+Math.floor(Math.random()*5);i++){
+            const x=cx+(Math.random()-.5)*18,z=cz+(Math.random()-.5)*18,h=1+Math.random()*5
+            const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.12,.22,h*.45,6),new THREE.MeshToonMaterial({color:0x594a52}));trunk.position.set(x,h*.225,z);chunk.add(trunk)
+            const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(.8+Math.random()*1.4,1),new THREE.MeshToonMaterial({color:Math.random()<.7?0x347e68:tone}));crown.position.set(x,h*.7,z);crown.scale.y=1.2;chunk.add(crown)
+          }
+          for(let i=0;i<2;i++){const ruin=new THREE.Mesh(new THREE.BoxGeometry(2+Math.random()*3,1+Math.random()*2,1.5),new THREE.MeshToonMaterial({color:tone}));ruin.position.set(cx+(Math.random()-.5)*14,.7,cz+(Math.random()-.5)*14);ruin.rotation.y=Math.random()*Math.PI;chunk.add(ruin)}
+          worldGenGroup.add(chunk);worldChunks.push({group:chunk,born:performance.now()})
+          while(worldChunks.length>7){const old=worldChunks.shift();worldGenGroup.remove(old.group)}
+        }
+
         weaponModel.position.z+=(0-weaponModel.position.z)*Math.min(1,dt*18);weaponModel.rotation.x*=Math.max(0,1-dt*12);weaponModel.position.y=reloading?-.39+Math.sin(performance.now()*.012)*.018:-.28+Math.sin(frame*8)*.006;if(reloading)weaponModel.rotation.x=.2+Math.sin(performance.now()*.012)*.035
         bullets.forEach((b,i)=>{b.life-=dt;b.mesh.position.addScaledVector(b.dir,dt*95);if(b.mesh.material?.opacity!==undefined)b.mesh.material.opacity=Math.max(0,b.life/.075);if(b.life<=0){scene.remove(b.mesh);b.mesh.geometry?.dispose?.();b.mesh.material?.dispose?.();bullets.splice(i,1)}})
         const flashActive=performance.now()<muzzleUntil;muzzleFlash.visible=flashActive;muzzleLight.intensity=flashActive?2.4:0
@@ -216,7 +265,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       const fogColorSet=(hex:number)=>scene.fog.color.setHex(hex)
       const applyConfig=(next:GameConfig)=>{const mapName=(next.mapStyle||next.arena).toLowerCase(),wildMap=mapName.includes('forest')||mapName.includes('woodland')||mapName.includes('desert')||mapName.includes('alien')||mapName.includes('organic');buildings.forEach((b:any)=>b.visible=!wildMap);buildingDetails.forEach((w:any)=>w.visible=!wildMap);road.visible=!wildMap;const weaponSpec=next.weaponBlueprint||{},weaponStyle=((next.weaponDesign||next.weapon||'')+' '+(weaponSpec.optic||'')+' '+(weaponSpec.barrel||'')+' '+(weaponSpec.magazine||'')).toLowerCase(),safeHex=(value:any,fallback:number)=>typeof value==='string'&&/^#?[0-9a-f]{6}$/i.test(value)?parseInt(value.replace('#',''),16):fallback;weaponMetal.color.setHex(weaponStyle.includes('plasma')||weaponStyle.includes('energy')?0x345f70:weaponStyle.includes('gold')?0x80643a:0x252b2b);weaponPolymer.color.setHex(safeHex(weaponSpec.bodyColor,weaponStyle.includes('white')?0xc3c8c4:weaponStyle.includes('desert')?0x6d6048:0x111716));weaponMetal.color.setHex(safeHex(weaponSpec.accentColor,weaponMetal.color.getHex()));barrel.scale.z=weaponStyle.includes('sniper')||weaponStyle.includes('long-range')?1.55:weaponStyle.includes('shotgun')?1.2:1;optic.scale.setScalar(weaponStyle.includes('sniper')||weaponStyle.includes('thermal')?1.45:1);magazine.scale.y=weaponStyle.includes('extended')?1.35:1;opticGlass.material.color.setHex(weaponStyle.includes('thermal')?0x9c4032:weaponStyle.includes('holo')?0x54b9bb:0x6e9ca0);const arena=(next.arena+' '+(next.mapStyle||'')).toLowerCase(),night=next.lighting.toLowerCase().includes('night'),desert=arena.includes('desert'),forest=arena.includes('woodland')||arena.includes('forest'),snow=arena.includes('frozen')||arena.includes('snow'),future=next.theme.toLowerCase().includes('futur');const palette=next.worldPalette||{},tint= safeHex(palette.ground,desert?0x9a896b:forest?0x435c43:snow?0x9ba8ad:future?0x263c49:0x55554e);floor.material.color.setHex(tint);const sky=safeHex(palette.sky,night?0x111a27:desert?0xc4a47b:forest?0x718477:snow?0x9baab7:future?0x344e62:0x87949a);scene.background.setHex(sky);fogColorSet(safeHex(palette.fog,sky));const effects=(next.specialEffects||'').toLowerCase(),smoky=effects.includes('smoke')||effects.includes('storm'),dusty=effects.includes('dust')||effects.includes('ash');scene.fog.density=night?.019:smoky?.018:dusty?.014:.009;sun.intensity=night?1.35:3.7;sun.color.setHex(night?0x9ab5dc:0xffd3a0);enemyMat.color.setHex(safeHex(next.enemyRoster?.[0]?.color,next.enemies.toLowerCase().includes('robot')?0x536b78:next.enemies.toLowerCase().includes('infected')||next.enemies.toLowerCase().includes('mutant')?0x536d45:0x303b3a));monsterFlesh.color.setHex(safeHex(next.enemyRoster?.[0]?.color,next.enemies.toLowerCase().includes('alien')?0x477b83:next.enemies.toLowerCase().includes('demon')?0x793b36:0x526b42));buildAIArena(next);level=Math.max(1,Math.min(5,Number(next.difficulty)||1));if(engine.current)engine.current.config=next}
       buildAIArena(DEFAULT_CONFIG)
-      engine.current={config:{...DEFAULT_CONFIG},start:()=>{enemies.forEach(e=>enemyGroup.remove(e.mesh));enemies.length=0;{const roster=engine.current?.config?.enemyRoster||[],count=roster.length?roster.reduce((sum:number,item:any)=>sum+Math.max(1,Math.min(8,Number(item.count)||2)),0):8;for(let i=0;i<Math.max(4,Math.min(16,count));i++)spawnEnemy()}frame=0;level=Math.max(1,Math.min(5,Number((engine.current.config||{}).difficulty)||1));killsNow=0;unlocked=0;activeAbility='';reloading=false;setKills(0);setWave(1);setAbility('None yet');active=true;healthNow=Math.max(75,Math.min(150,Number(engine.current?.config?.gameplayRules?.playerHealth)||100));ammoNow=Math.max(8,Math.min(60,Number(engine.current?.config?.weaponBlueprint?.ammo)||30));setHealth(healthNow);setAmmo(ammoNow);setRunning(true);setStatus('Operation live. Capture the mouse by clicking the battlefield. WASD move · Shift sprint · R reload · Click fire.');renderer.domElement.requestPointerLock?.()},stop:()=>{active=false;document.exitPointerLock?.()},applyConfig,scene,camera}
+      engine.current={config:{...DEFAULT_CONFIG},start:()=>{enemies.forEach(e=>enemyGroup.remove(e.mesh));enemies.length=0;{const roster=engine.current?.config?.enemyRoster||[],count=roster.length?roster.reduce((sum:number,item:any)=>sum+Math.max(1,Math.min(8,Number(item.count)||2)),0):8;for(let i=0;i<Math.max(4,Math.min(16,count));i++)spawnEnemy()}frame=0;level=Math.max(1,Math.min(5,Number((engine.current.config||{}).difficulty)||1));killsNow=0;unlocked=0;activeAbility='';reloading=false;setKills(0);setWave(1);setAbility('None yet');active=true;healthNow=Math.max(75,Math.min(150,Number(engine.current?.config?.gameplayRules?.playerHealth)||100));ammoNow=Math.max(8,Math.min(60,Number(engine.current?.config?.weaponBlueprint?.ammo)||30));setHealth(healthNow);setAmmo(ammoNow);setRunning(true);setStatus('Anime battlefield live. Rival squads fight autonomously and the world expands every few seconds. Click to aim · WASD move · Shift sprint · R reload · Click fire.');renderer.domElement.requestPointerLock?.()},stop:()=>{active=false;document.exitPointerLock?.()},applyConfig,scene,camera}
       cleanup=()=>{active=false;observer.disconnect();renderer.domElement.removeEventListener('click',onClick);window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onUp);window.removeEventListener('mousemove',onMove);document.removeEventListener('pointerlockchange',onLock);document.exitPointerLock?.();renderer.dispose();scene.clear();canvasLayer.remove()}
     }).catch(e=>{if(!dead)setError(e.message||'Unable to start 3D renderer')})
     return()=>{dead=true;cleanup?.()}
@@ -252,10 +301,10 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       .rzer-game-status{padding:10px 18px;background:#121a1d;color:#b8c3c1;border-top:1px solid #344044;font-size:11px;letter-spacing:.025em;min-height:18px}
       @media(max-width:650px){.rzer-game-head{padding:12px}.rzer-game-hud{padding:12px}.rzer-game-config{grid-template-columns:1fr}.rzer-game-card{padding:16px}}
     `}</style>
-    <div className="rzer-game-head"><div><h2>Game Studio / Frontline</h2><p>Adaptive first-person combat · Procedural battlefield</p></div><div className="rzer-game-actions"><button onClick={()=>{engine.current?.stop();setRunning(false);setShowBrief(true)}}>Game setup</button><button className="primary" disabled={!engineReady} onClick={()=>engine.current?.start()}> {running?'Restart operation':'Deploy'} </button></div></div>
+    <div className="rzer-game-head"><div><h2>Game Studio / Anime Frontline</h2><p>Living anime battlefield · Autonomous faction warfare · Endless world generation</p></div><div className="rzer-game-actions"><button onClick={()=>{engine.current?.stop();setRunning(false);setShowBrief(true)}}>Game setup</button><button className="primary" disabled={!engineReady} onClick={()=>engine.current?.start()}> {running?'Restart operation':'Deploy'} </button></div></div>
     <div className="rzer-game-stage" ref={host}>
-      <div className="rzer-game-hud"><div className="rzer-game-hud-top"><div>RZER // LIVE COMBAT SIMULATION</div><div>SECTOR 07 · WAVE {wave}</div></div><div className="rzer-crosshair"/><div className="rzer-game-bottom"><div className="rzer-game-stats"><div className="rzer-game-stat"><b>{health}</b><span>HEALTH</span></div><div className="rzer-game-stat"><b>{kills}</b><span>ELIMINATIONS</span></div><div className="rzer-game-stat"><b>{wave}</b><span>THREAT LEVEL</span></div></div><div className="rzer-game-weapon">{config.weapon}<b>{ammo} <small style={{fontSize:12,color:'#c4cfcc'}}>/ 30</small></b></div></div><div className="rzer-game-ability">UNLOCKED ABILITY · <strong>{ability}</strong></div></div>
+      <div className="rzer-game-hud"><div className="rzer-game-hud-top"><div>RZER // ANIME WORLD SIMULATION</div><div>SECTOR 07 · WAVE {wave}</div></div><div className="rzer-crosshair"/><div className="rzer-game-bottom"><div className="rzer-game-stats"><div className="rzer-game-stat"><b>{health}</b><span>HEALTH</span></div><div className="rzer-game-stat"><b>{kills}</b><span>ELIMINATIONS</span></div><div className="rzer-game-stat"><b>{wave}</b><span>THREAT LEVEL</span></div></div><div className="rzer-game-weapon">{config.weapon}<b>{ammo} <small style={{fontSize:12,color:'#c4cfcc'}}>/ 30</small></b></div></div><div className="rzer-game-ability">UNLOCKED ABILITY · <strong>{ability}</strong></div></div>
       {showBrief&&<div className="rzer-game-overlay"><div className="rzer-game-card"><h3>Build your battlefield</h3><p>Describe the game you want. Nemotron 3 Ultra designs the map, enemy species and behaviors, weapon, lighting, effects and combat rules. Generation runs in the background, so you can close this panel and keep playing while the new build is prepared. Add your OpenRouter API key in RZER settings to use the free model.</p><textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Describe the game you want…"/><div className="rzer-game-actions" style={{marginTop:12}}><button className="primary" onClick={generate} disabled={loading}>{loading?'Designing in background…':'Design in background'}</button><button onClick={()=>setShowBrief(false)}>Keep current setup</button></div>{error&&<p style={{color:'#ff9b86'}}>{error}</p>}<div className="rzer-game-config"><div><small>Environment</small><strong>{config.arena}</strong></div><div><small>Faction</small><strong>{config.enemies}</strong></div><div><small>Visual direction</small><strong>{config.lighting}</strong></div><div><small>Combat style</small><strong>{config.theme} · {config.weapon}</strong></div></div><p>Controls: WASD move · Shift sprint · Mouse aim · Click fire · R reload · Esc release mouse. High-performance WebGL rendering uses your available graphics hardware; performance depends on your browser and GPU drivers.</p></div></div>}
-    </div><div className="rzer-game-status" role="status">{loading?'AI DIRECTOR // DESIGNING YOUR GAME IN THE BACKGROUND':error||status} {running?' · The combat director unlocks abilities and raises pressure as you survive.':''}</div>
+    </div><div className="rzer-game-status" role="status">{loading?'AI DIRECTOR // DESIGNING YOUR GAME IN THE BACKGROUND':error||status} {running?' · Rival factions battle continuously while new terrain is generated.':''}</div>
   </div>
 }
