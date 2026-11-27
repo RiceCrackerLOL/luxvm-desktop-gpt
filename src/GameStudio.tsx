@@ -50,6 +50,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       scene.fog = new THREE.FogExp2(0x87949a, 0.012)
       const camera = new THREE.PerspectiveCamera(76, root.clientWidth / Math.max(1, root.clientHeight), 0.1, 450)
       camera.position.set(0, 1.7, 12)
+      scene.add(camera)
       const weaponModel = new THREE.Group()
       const weaponMetal = new THREE.MeshStandardMaterial({color:0x252b2b,metalness:.78,roughness:.32})
       const weaponPolymer = new THREE.MeshStandardMaterial({color:0x111716,metalness:.12,roughness:.72})
