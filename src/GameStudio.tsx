@@ -119,7 +119,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
         if(locked){
           const speed=keys.ShiftLeft?10:6.2, forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw))
           if(keys.KeyW)camera.position.addScaledVector(forward,speed*dt);if(keys.KeyS)camera.position.addScaledVector(forward,-speed*dt);if(keys.KeyA)camera.position.addScaledVector(right,-speed*dt);if(keys.KeyD)camera.position.addScaledVector(right,speed*dt)
-          camera.position.y=1.7+(keys.Space?.0:0);camera.rotation.set(pitch,yaw,0,'YXZ')
+          camera.position.y=keys.Space?2.35:1.7;camera.rotation.set(pitch,yaw,0,'YXZ')
         }
         enemies.forEach(e=>{if(!e.alive)return;const dx=camera.position.x-e.mesh.position.x,dz=camera.position.z-e.mesh.position.z,dist=Math.hypot(dx,dz);e.mesh.rotation.y=Math.atan2(dx,dz);if(dist>8){e.mesh.position.x+=(dx/dist)*dt*(.48+level*.13);e.mesh.position.z+=(dz/dist)*dt*(.48+level*.13)}if(dist<27&&performance.now()>e.nextShot){e.nextShot=performance.now()+Math.max(650,2500-level*170);if(Math.random()<.28+level*.035){healthNow=Math.max(0,healthNow-(level>5?5:3));setHealth(healthNow)}}})
         bullets.forEach((b,i)=>{b.life-=dt;b.mesh.position.addScaledVector(b.dir,dt*95);if(b.life<=0){scene.remove(b.mesh);bullets.splice(i,1)}})
@@ -157,7 +157,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       .rzer-game-head{display:flex;align-items:center;justify-content:space-between;padding:15px 22px;border-bottom:1px solid #344044;background:#151d21;gap:12px;flex-wrap:wrap}
       .rzer-game-head h2{margin:0;font-size:17px;letter-spacing:.12em;text-transform:uppercase}.rzer-game-head p{margin:4px 0 0;color:#9ba9aa;font-size:12px}
       .rzer-game-actions{display:flex;gap:8px;flex-wrap:wrap}.rzer-game-studio button{background:#26353a;border:1px solid #46575b;color:#eaf0ef;border-radius:4px;padding:9px 13px;cursor:pointer;font-weight:650}.rzer-game-studio button.primary{background:#c5a66c;color:#111a1c;border-color:#d7bd8b}.rzer-game-studio button:disabled{opacity:.55;cursor:wait}
-      .rzer-game-stage{position:relative;flex:1;min-height:260px;background:#69777c}.rzer-game-stage canvas{display:block;width:100%;height:100%}
+      .rzer-game-stage{position:relative;flex:1;min-height:260px;background:#69777c;overflow:hidden}.rzer-game-canvas{position:absolute;inset:0}.rzer-game-canvas canvas{display:block;width:100%;height:100%}
       .rzer-game-hud{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:18px 22px;text-shadow:0 2px 5px #000}
       .rzer-game-hud-top{display:flex;justify-content:space-between;gap:12px;font-size:12px;letter-spacing:.12em;text-transform:uppercase}.rzer-game-stats{display:flex;gap:18px;flex-wrap:wrap}.rzer-game-stat b{display:block;font-size:22px;letter-spacing:0}.rzer-game-stat span{color:#d0d8d7;font-size:10px}
       .rzer-crosshair{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%)}.rzer-crosshair:before,.rzer-crosshair:after{content:'';position:absolute;background:#fff;box-shadow:0 0 4px #000}.rzer-crosshair:before{width:2px;height:18px;left:9px}.rzer-crosshair:after{height:2px;width:18px;top:8px}
