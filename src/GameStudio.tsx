@@ -81,17 +81,21 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       scene.add(sun)
       const floor = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), new THREE.MeshStandardMaterial({ color: 0x55554e, roughness: 0.96 }))
       floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor)
-      const grid = new THREE.GridHelper(240, 80, 0x7c7b70, 0x69685f); grid.position.y = 0.012; scene.add(grid)
+      const road = new THREE.Mesh(new THREE.PlaneGeometry(11,180),new THREE.MeshStandardMaterial({color:0x292f30,roughness:1}));road.rotation.x=-Math.PI/2;road.position.y=.025;road.receiveShadow=true;scene.add(road)
+      const curbMat=new THREE.MeshStandardMaterial({color:0x77766e,roughness:.95})
+      for(const side of [-1,1]){const curb=new THREE.Mesh(new THREE.BoxGeometry(.28,.22,180),curbMat);curb.position.set(side*5.65,.11,0);curb.castShadow=true;curb.receiveShadow=true;scene.add(curb)}
+      const laneMat=new THREE.MeshStandardMaterial({color:0xb7a77e,roughness:.8})
+      for(let z=-84;z<=84;z+=9){const dash=new THREE.Mesh(new THREE.BoxGeometry(.12,.025,3.2),laneMat);dash.position.set(0,.05,z);scene.add(dash)}
       const buildings: any[] = []
-      const blockMat = [0x77766d,0x5c625f,0x8b8171,0x4c5356].map((c:number)=>new THREE.MeshStandardMaterial({color:c,roughness:.9}))
+      const blockMat = [0x77766d,0x5c625f,0x8b8171,0x4c5356].map((c:number)=>new THREE.MeshStandardMaterial({color:c,roughness:.94}))
+      const windowMat=new THREE.MeshStandardMaterial({color:0x20282b,roughness:.38,metalness:.2})
       for (let i=0;i<54;i++) {
         const x = (Math.random()-.5)*105, z = (Math.random()-.5)*105
         if (Math.abs(x)<13 && Math.abs(z)<18) continue
         const w=4+Math.random()*8, h=4+Math.random()*19, d=4+Math.random()*9
         const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),blockMat[i%blockMat.length])
         b.position.set(x,h/2,z); b.castShadow=true; b.receiveShadow=true; scene.add(b); buildings.push(b)
-        const windows=new THREE.Mesh(new THREE.BoxGeometry(w*.72,.18,.04),new THREE.MeshStandardMaterial({color:0x252c30,roughness:.5}))
-        windows.position.set(x,h*.58,z+d/2+.025); scene.add(windows)
+        for(let row=0;row<Math.min(3,Math.floor(h/3));row++)for(let col=0;col<3;col++){const windowPane=new THREE.Mesh(new THREE.BoxGeometry(w*.13,.72,.07),windowMat);windowPane.position.set(x+(col-1)*w*.25,1.7+row*2.05,z+d/2+.045);scene.add(windowPane)}
       }
       // Street cover, barriers and wreckage give the arena readable combat lanes.
       for(let i=0;i<22;i++){
@@ -181,7 +185,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       .rzer-game-hud-top{display:flex;justify-content:space-between;gap:12px;font-size:12px;letter-spacing:.12em;text-transform:uppercase}.rzer-game-stats{display:flex;gap:18px;flex-wrap:wrap}.rzer-game-stat b{display:block;font-size:22px;letter-spacing:0}.rzer-game-stat span{color:#d0d8d7;font-size:10px}
       .rzer-crosshair{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%)}.rzer-crosshair:before,.rzer-crosshair:after{content:'';position:absolute;background:#fff;box-shadow:0 0 4px #000}.rzer-crosshair:before{width:2px;height:18px;left:9px}.rzer-crosshair:after{height:2px;width:18px;top:8px}
       .rzer-game-bottom{display:flex;justify-content:space-between;align-items:end;gap:12px}.rzer-game-weapon{font-size:11px;letter-spacing:.14em;text-transform:uppercase}.rzer-game-weapon b{display:block;font-size:25px;letter-spacing:0}.rzer-game-ability{background:#17252bd9;border:1px solid #8c9a91;padding:9px 12px;border-radius:4px;font-size:11px}
-      .rzer-game-overlay{position:absolute;inset:0;display:grid;place-items:center;background:#0b1114b8;backdrop-filter:blur(5px);padding:18px}.rzer-game-card{width:min(580px,100%);max-height:100%;overflow:auto;background:linear-gradient(145deg,#1d292d,#111a1e);border:1px solid #697a79;border-radius:7px;padding:25px;box-shadow:0 24px 90px #000b}.rzer-game-card h3{margin:0 0 8px;font-size:22px}.rzer-game-card p{color:#aebbbc;font-size:13px;line-height:1.55}.rzer-game-card textarea{width:100%;box-sizing:border-box;min-height:95px;background:#0e171a;color:#edf1ee;border:1px solid #46575b;border-radius:4px;padding:12px;font:13px/1.5 inherit;resize:vertical}.rzer-game-config{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}.rzer-game-config div{background:#202e32;padding:10px;border-radius:4px;min-width:0}.rzer-game-config small{display:block;color:#91a2a2;text-transform:uppercase;font-size:9px;letter-spacing:.1em}.rzer-game-config strong{font-size:12px;display:block;margin-top:5px;overflow-wrap:anywhere}
+      .rzer-game-overlay{position:absolute;inset:0;z-index:3;display:grid;place-items:center;background:#0b1114c9;backdrop-filter:blur(7px);padding:18px}.rzer-game-card{width:min(580px,100%);max-height:100%;overflow:auto;background:linear-gradient(145deg,#1d292d,#111a1e);border:1px solid #697a79;border-radius:7px;padding:25px;box-shadow:0 24px 90px #000b}.rzer-game-card h3{margin:0 0 8px;font-size:22px}.rzer-game-card p{color:#aebbbc;font-size:13px;line-height:1.55}.rzer-game-card textarea{width:100%;box-sizing:border-box;min-height:95px;background:#0e171a;color:#edf1ee;border:1px solid #46575b;border-radius:4px;padding:12px;font:13px/1.5 inherit;resize:vertical}.rzer-game-config{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}.rzer-game-config div{background:#202e32;padding:10px;border-radius:4px;min-width:0}.rzer-game-config small{display:block;color:#91a2a2;text-transform:uppercase;font-size:9px;letter-spacing:.1em}.rzer-game-config strong{font-size:12px;display:block;margin-top:5px;overflow-wrap:anywhere}
       .rzer-game-status{padding:10px 18px;background:#121a1d;color:#b8c3c1;border-top:1px solid #344044;font-size:11px;letter-spacing:.025em;min-height:18px}
       @media(max-width:650px){.rzer-game-head{padding:12px}.rzer-game-hud{padding:12px}.rzer-game-config{grid-template-columns:1fr}.rzer-game-card{padding:16px}}
     `}</style>
