@@ -35,22 +35,6 @@ jobs:
         run: npm audit --json > npm-audit.json
         continue-on-error: true
 
-      - name: Upload dependency audit report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: RZER-NPM-Audit
-          path: npm-audit.json
-          if-no-files-found: ignore
-          retention-days: 7
-
       - name: Type-check, build, and package
         run: npm run build
 
-      - name: Upload desktop installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: RZER-Windows
-          path: release/*.exe
-          if-no-files-found: error
-          retention-days: 14
