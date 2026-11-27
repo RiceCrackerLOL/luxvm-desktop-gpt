@@ -23,7 +23,7 @@ function loadThree(): Promise<any> {
 export default function GameStudio({ apiKey }: { apiKey: string }) {
   const host = useRef<HTMLDivElement>(null)
   const engine = useRef<any>(null)
-  const [prompt, setPrompt] = useState('Build a Vietnam jungle island combat map inspired by the Far Cry 5 Vietnam AA Gun mission map: dense tropical forest, a winding route through ridges and valleys, a river or ravine crossing, an old fire base, two Ack-Ack anti-aircraft positions, a heavy weapons cache, a Triple-A gun site, and a dangerous escape route. Create a tactical first-person gun game with believable cover, enemy patrols, and cinematic humid jungle atmosphere.')
+  const [prompt, setPrompt] = useState('Create an anime-style Vietnam jungle island battlefield inspired by the Far Cry 5 Vietnam AA Gun map. Use vivid cel-shaded colors, expressive stylized characters, dramatic skies, bold silhouettes, glowing weapon effects, and cinematic anime lighting. Keep the map landmarks: two separated Ack-Ack gun sites, an escape route, heavy-weapons cache, old fire base, and Triple-A position. Three rival anime factions must continuously patrol, hunt and fight each other. Expand the world with new jungle clearings, ruins, outposts and terrain while the battle continues.')
   const [config, setConfig] = useState<GameConfig>(DEFAULT_CONFIG)
   const [status, setStatus] = useState('Preparing the battlefield…')
   const [running, setRunning] = useState(false)
@@ -35,7 +35,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
   const [ability, setAbility] = useState('None yet')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showBrief, setShowBrief] = useState(true)
+  const [showBrief, setShowBrief] = useState(false)
 
   useEffect(() => {
     let dead = false
@@ -95,7 +95,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       const makeSurfaceTexture=(base:number,variation:number,repeatX:number,repeatY:number)=>{const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;const ctx=canvas.getContext('2d');if(!ctx)return null;const image=ctx.createImageData(512,512);const r=(base>>16)&255,g=(base>>8)&255,b=base&255;for(let i=0;i<image.data.length;i+=4){const n=(Math.random()-.5)*variation;image.data[i]=Math.max(0,Math.min(255,r+n));image.data[i+1]=Math.max(0,Math.min(255,g+n));image.data[i+2]=Math.max(0,Math.min(255,b+n));image.data[i+3]=255}ctx.putImageData(image,0,0);for(let i=0;i<1800;i++){const x=Math.random()*512,y=Math.random()*512,size=Math.random()*2.5;ctx.fillStyle=`rgba(12,15,15,${Math.random()*.2})`;ctx.fillRect(x,y,size,size)}for(let i=0;i<22;i++){ctx.strokeStyle=`rgba(8,10,10,${Math.random()*.22})`;ctx.lineWidth=.5+Math.random()*1.5;ctx.beginPath();let x=Math.random()*512,y=Math.random()*512;ctx.moveTo(x,y);for(let j=0;j<4;j++){x+=(Math.random()-.5)*45;y+=(Math.random()-.5)*45;ctx.lineTo(x,y)}ctx.stroke()}const texture=new THREE.CanvasTexture(canvas);texture.wrapS=THREE.RepeatWrapping;texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(repeatX,repeatY);texture.colorSpace=THREE.SRGBColorSpace;return texture}
       const concreteTexture=makeSurfaceTexture(0x77766d,46,3,3),asphaltTexture=makeSurfaceTexture(0x303436,30,8,24),metalTexture=makeSurfaceTexture(0x555d5d,58,2,2),skinTexture=makeSurfaceTexture(0x63704b,48,2,2)
       weaponMetal.map=metalTexture;weaponMetal.bumpMap=metalTexture;weaponMetal.bumpScale=.025;weaponMetal.needsUpdate=true;weaponPolymer.map=metalTexture;weaponPolymer.needsUpdate=true
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), new THREE.MeshStandardMaterial({ color: 0x55554e, roughness: 0.96, map:concreteTexture, bumpMap:concreteTexture, bumpScale:.045 }))
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), new THREE.MeshToonMaterial({ color: 0x55554e, map:concreteTexture, bumpMap:concreteTexture, bumpScale:.045 }))
       floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor)
       const road = new THREE.Mesh(new THREE.PlaneGeometry(11,180),new THREE.MeshStandardMaterial({color:0x292f30,roughness:1,map:asphaltTexture,bumpMap:asphaltTexture,bumpScale:.025}));road.rotation.x=-Math.PI/2;road.position.y=.025;road.receiveShadow=true;scene.add(road)
       const curbMat=new THREE.MeshStandardMaterial({color:0x77766e,roughness:.95})
@@ -115,7 +115,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       }
       // Street cover, barriers and wreckage give the arena readable combat lanes.
       for(let i=0;i<22;i++){
-        const box=new THREE.Mesh(new THREE.BoxGeometry(2.8,1.15,1.1),new THREE.MeshStandardMaterial({color:i%2?0x66645a:0x77756a,roughness:1}))
+        const box=new THREE.Mesh(new THREE.BoxGeometry(2.8,1.15,1.1),new THREE.MeshToonMaterial({color:i%2?0x66645a:0x77756a}))
         box.position.set((Math.random()-.5)*72,.58,(Math.random()-.5)*72); box.castShadow=true;box.receiveShadow=true;scene.add(box)
       }
       const enemyGroup = new THREE.Group(); scene.add(enemyGroup)
@@ -133,9 +133,9 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
         while(aiMapGroup.children.length){const child=aiMapGroup.children.pop();if(child){child.parent=null;child.traverse((o:any)=>{o.geometry?.dispose?.();if(Array.isArray(o.material))o.material.forEach((m:any)=>m.dispose?.());else o.material?.dispose?.()})}}
         const style=(cfg.mapStyle||cfg.arena).toLowerCase(), complexity=Math.max(1,Math.min(5,Number(cfg.mapComplexity)||2))
         const industrial=style.includes('industrial')||style.includes('factory'), forest=style.includes('forest')||style.includes('woodland'), desert=style.includes('desert'), alien=style.includes('alien')||style.includes('organic')
-        const concrete=new THREE.MeshStandardMaterial({color:industrial?0x454b4d:forest?0x465443:desert?0x887252:alien?0x343d37:0x5b5c56,roughness:.94,map:concreteTexture,bumpMap:concreteTexture,bumpScale:.055})
-        const trim=new THREE.MeshStandardMaterial({color:industrial?0x202a2d:desert?0x51432f:0x343c3b,metalness:.45,roughness:.58})
-        const glow=new THREE.MeshStandardMaterial({color:0x8c4b37,emissive:0x542014,emissiveIntensity:.45}),fx=(cfg.specialEffects||'').toLowerCase()
+        const concrete=new THREE.MeshToonMaterial({color:industrial?0x454b4d:forest?0x465443:desert?0x887252:alien?0x343d37:0x5b5c56,map:concreteTexture,bumpMap:concreteTexture,bumpScale:.055})
+        const trim=new THREE.MeshToonMaterial({color:industrial?0x202a2d:desert?0x51432f:0x343c3b})
+        const glow=new THREE.MeshToonMaterial({color:0x8c4b37,emissive:0x542014,emissiveIntensity:.65}),fx=(cfg.specialEffects||'').toLowerCase()
         for(let i=0;i<8+complexity*4;i++){
           const side=i%2?1:-1, z=-34+Math.random()*68, x=side*(8+Math.random()*18), h=2.5+Math.random()*(industrial?10:6), w=2.5+Math.random()*5
           const block=new THREE.Mesh(new THREE.BoxGeometry(w,h,2.5+Math.random()*4),concrete);block.position.set(x,h/2,z);block.castShadow=true;block.receiveShadow=true;aiMapGroup.add(block)
@@ -152,8 +152,8 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
         const landmark=new THREE.Mesh(new THREE.BoxGeometry(3.8,5.8,2.2),trim);landmark.position.set(0,2.9,-30);landmark.castShadow=true;landmark.receiveShadow=true;aiMapGroup.add(landmark)
         const sign=new THREE.Mesh(new THREE.BoxGeometry(2.2,.55,.08),glow);sign.position.set(0,4.5,-28.82);aiMapGroup.add(sign)
         const palette=cfg.worldPalette||{},colorOf=(v:any,fallback:number)=>{if(typeof v!=='string'||!/^#?[0-9a-f]{6}$/i.test(v))return fallback;return parseInt(v.replace('#',''),16)}
-        const featureMaterial=new THREE.MeshStandardMaterial({color:colorOf(palette.structures,industrial?0x454b4d:forest?0x465443:desert?0x887252:alien?0x343d37:0x5b5c56),roughness:.82,metalness:industrial?.38:.12,map:concreteTexture,bumpMap:concreteTexture,bumpScale:.04})
-        const accentMaterial=new THREE.MeshStandardMaterial({color:colorOf(palette.accent,0x9b7650),metalness:.5,roughness:.35,emissive:colorOf(palette.emissive,0x24140b),emissiveIntensity:.65})
+        const featureMaterial=new THREE.MeshToonMaterial({color:colorOf(palette.structures,industrial?0x454b4d:forest?0x465443:desert?0x887252:alien?0x343d37:0x5b5c56),map:concreteTexture,bumpMap:concreteTexture,bumpScale:.04})
+        const accentMaterial=new THREE.MeshToonMaterial({color:colorOf(palette.accent,0x9b7650),emissive:colorOf(palette.emissive,0x24140b),emissiveIntensity:.8})
         ;(Array.isArray(cfg.mapFeatures)?cfg.mapFeatures:[]).slice(0,36).forEach((feature:any,index:number)=>{
           const w=Math.max(1,Math.min(18,Number(feature.width)||4)),h=Math.max(.5,Math.min(24,Number(feature.height)||3)),d=Math.max(1,Math.min(18,Number(feature.depth)||4)),shape=String(feature.shape||'building').toLowerCase()
           const geometry=shape.includes('cylinder')||shape.includes('tower')?new THREE.CylinderGeometry(w*.5,w*.62,h,10):shape.includes('sphere')||shape.includes('boulder')?new THREE.DodecahedronGeometry(Math.max(w,h,d)*.42,1):shape.includes('wall')?new THREE.BoxGeometry(w,h*.65,Math.max(.35,d*.2)):new THREE.BoxGeometry(w,h,d)
@@ -200,7 +200,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       const onUp=(e:KeyboardEvent)=>{keys[e.code]=false}
       const onMove=(e:MouseEvent)=>{if(!locked)return;yaw-=e.movementX*.0022;pitch-=e.movementY*.0022;pitch=Math.max(-1.25,Math.min(1.25,pitch))}
       const onLock=()=>{locked=document.pointerLockElement===renderer.domElement}
-      const onClick=()=>{if(!locked){renderer.domElement.requestPointerLock?.();return}if(!active||reloading||ammoNow<=0)return;const weaponSpec=engine.current?.config?.weaponBlueprint||{},baseRate=Math.max(2,Math.min(12,Number(weaponSpec.fireRate)||7)),cooldown=activeAbility==='Overdrive'?Math.max(55,1000/(baseRate*1.45)):1000/baseRate;if(performance.now()-lastShot<cooldown)return;lastShot=performance.now();muzzleUntil=performance.now()+85;weaponModel.position.z=.12;weaponModel.rotation.x=.035;ammoNow--;setAmmo(ammoNow);camera.rotation.set(pitch,yaw,0,'YXZ');raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hit=raycaster.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.mesh.children),true)[0];const tracerEnd=hit?.point||camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(55));const tracerStart=camera.localToWorld(new THREE.Vector3(.32,-.245,-1.39));const tracerGeometry=new THREE.BufferGeometry().setFromPoints([tracerStart,tracerEnd]);const tracer=new THREE.Line(tracerGeometry,new THREE.LineBasicMaterial({color:0xffd18a,transparent:true,opacity:.9}));scene.add(tracer);bullets.push({mesh:tracer,dir:new THREE.Vector3(),life:.075});if(hit){const enemy=enemies.find(e=>e.alive&&e.mesh.getObjectById(hit.object.id));if(enemy){enemy.hp-=activeAbility==='Explosive rounds'?120:Math.max(12,Math.min(100,Number(weaponSpec.damage)||55));if(enemy.hp<=0){enemy.alive=false;enemyGroup.remove(enemy.mesh);killsNow++;setKills(killsNow)}}}}
+      const onClick=()=>{if(!locked){renderer.domElement.requestPointerLock?.();return}if(!active||reloading||ammoNow<=0)return;const weaponSpec=engine.current?.config?.weaponBlueprint||{},baseRate=Math.max(2,Math.min(12,Number(weaponSpec.fireRate)||7)),cooldown=activeAbility==='Overdrive'?Math.max(55,1000/(baseRate*1.45)):1000/baseRate;if(performance.now()-lastShot<cooldown)return;lastShot=performance.now();muzzleUntil=performance.now()+85;weaponModel.position.z=.12;weaponModel.rotation.x=.035;ammoNow--;setAmmo(ammoNow);camera.rotation.set(pitch,yaw,0,'YXZ');raycaster.setFromCamera(new THREE.Vector2(0,0),camera);const hit=raycaster.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.mesh.children),true)[0];const tracerEnd=hit?.point||camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(55));const tracerStart=camera.localToWorld(new THREE.Vector3(.32,-.245,-1.39));const tracerGeometry=new THREE.BufferGeometry().setFromPoints([tracerStart,tracerEnd]);const tracer=new THREE.Line(tracerGeometry,new THREE.LineBasicMaterial({color:0xffd18a,transparent:true,opacity:.9}));scene.add(tracer);bullets.push({mesh:tracer,dir:new THREE.Vector3(),life:.075});if(hit){const enemy=enemies.find(e=>e.alive&&e.mesh.getObjectById(hit.object.id));if(enemy){enemy.hp-=activeAbility==='Explosive rounds'?120:Math.max(12,Math.min(100,Number(weaponSpec.damage)||55));if(enemy.hp<=0){enemy.alive=false;enemy.respawnAt=performance.now()+2200+Math.random()*2500;enemyGroup.remove(enemy.mesh);killsNow++;setKills(killsNow)}}}}
       renderer.domElement.addEventListener('click',onClick)
       window.addEventListener('keydown',onKey);window.addEventListener('keyup',onUp);window.addEventListener('mousemove',onMove);document.addEventListener('pointerlockchange',onLock)
       const resize=()=>{const width=canvasLayer.clientWidth,height=canvasLayer.clientHeight;if(!width||!height)return;camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height)}
@@ -235,7 +235,6 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
           }else if(performance.now()>e.nextShot)e.nextShot=performance.now()+400
           if(active){const pdx=camera.position.x-e.mesh.position.x,pdz=camera.position.z-e.mesh.position.z,pdist=Math.hypot(pdx,pdz);if(pdist<18&&performance.now()>e.playerShot){e.playerShot=performance.now()+1800+Math.random()*1700;if(Math.random()<.18){const armor=activeAbility==='Armor plating'?.45:1;healthNow=Math.max(0,healthNow-e.damage*.35*armor);setHealth(Math.round(healthNow))}}}
         })
-        const aliveNow=enemies.filter(e=>e.alive).length
         enemies.forEach(e=>{if(!e.alive&&performance.now()>e.respawnAt){e.alive=true;e.hp=e.maxHp;e.mesh.position.set(camera.position.x+(Math.random()-.5)*70,0,camera.position.z-24-Math.random()*35);enemyGroup.add(e.mesh)}})
         if(enemies.length<24&&performance.now()>nextWorldGen-1200){for(let i=0;i<Math.min(3,24-enemies.length);i++)spawnEnemy()}
         if(performance.now()>nextWorldGen){
