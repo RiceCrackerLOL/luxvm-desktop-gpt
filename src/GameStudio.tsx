@@ -6,19 +6,17 @@ declare global { interface Window { THREE?: any } }
 type GameConfig = { theme: string; arena: string; enemies: string; lighting: string; difficulty: number; weapon: string; mapStyle?: string; enemyBehavior?: string; enemyVariant?: string; weaponDesign?: string; specialEffects?: string; mapComplexity?: number; worldPalette?: { ground?: string; structures?: string; accent?: string; sky?: string; fog?: string; emissive?: string }; mapFeatures?: Array<{ name?: string; shape?: string; x?: number; z?: number; width?: number; height?: number; depth?: number; color?: string; material?: string }>; enemyRoster?: Array<{ name?: string; type?: string; color?: string; accent?: string; scale?: number; health?: number; speed?: number; damage?: number; count?: number }>; weaponBlueprint?: { name?: string; bodyColor?: string; accentColor?: string; optic?: string; barrel?: string; magazine?: string; fireRate?: number; damage?: number; ammo?: number }; gameplayRules?: { waveSize?: number; enemySpeed?: number; playerHealth?: number; abilityInterval?: number } }
 const DEFAULT_CONFIG: GameConfig = { theme: 'Anime action adventure', arena: 'Vietnam jungle island', enemies: 'Three rival anime fighter factions', lighting: 'Cinematic anime sunset with luminous atmosphere', difficulty: 1, weapon: 'Cel-shaded energy rifle', mapStyle: 'Anime jungle forest island', enemyBehavior: 'Rival squads patrol, hunt, flank and fight each other', enemyVariant: 'Anime fighters', weaponDesign: 'Stylized energy rifle with glowing accents', specialEffects: 'Colorful energy trails, sparks, glowing impacts and drifting petals', mapComplexity: 3, worldPalette: { ground: '#385b45', structures: '#647b61', accent: '#ffcf6e', sky: '#8eb9dc', fog: '#91b9d5', emissive: '#ff8fc8' } }
 
+let threeModulePromise: Promise<any> | null = null
+
 function loadThree(): Promise<any> {
-  if (window.THREE) return Promise.resolve(window.THREE)
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[data-rzer-three]')
-    if (existing) { existing.addEventListener('load', () => resolve(window.THREE)); existing.addEventListener('error', reject); return }
-    const script = document.createElement('script')
-    script.src = 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js'
-    script.async = true
-    script.dataset.rzerThree = 'true'
-    script.onload = () => window.THREE ? resolve(window.THREE) : reject(new Error('3D engine did not initialize'))
-    script.onerror = () => reject(new Error('Could not load the 3D engine. Check your internet connection.'))
-    document.head.appendChild(script)
-  })
+  if (!threeModulePromise) {
+    const moduleUrl = 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js'
+    threeModulePromise = import(/* @vite-ignore */ moduleUrl).catch((error) => {
+      threeModulePromise = null
+      throw new Error('Could not load the Three.js 3D engine. Check your internet connection or CDN access. ' + (error?.message || ''))
+    })
+  }
+  return threeModulePromise
 }
 
 export default function GameStudio({ apiKey }: { apiKey: string }) {
@@ -264,7 +262,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       engine.current={config:{...DEFAULT_CONFIG},start:()=>{enemies.forEach(e=>enemyGroup.remove(e.mesh));enemies.length=0;{const roster=engine.current?.config?.enemyRoster||[],count=roster.length?roster.reduce((sum:number,item:any)=>sum+Math.max(1,Math.min(8,Number(item.count)||2)),0):8;for(let i=0;i<Math.max(4,Math.min(16,count));i++)spawnEnemy()}frame=0;level=Math.max(1,Math.min(5,Number((engine.current.config||{}).difficulty)||1));killsNow=0;unlocked=0;activeAbility='';reloading=false;setKills(0);setWave(1);setAbility('None yet');active=true;healthNow=Math.max(75,Math.min(150,Number(engine.current?.config?.gameplayRules?.playerHealth)||100));ammoNow=Math.max(8,Math.min(60,Number(engine.current?.config?.weaponBlueprint?.ammo)||30));setHealth(healthNow);setAmmo(ammoNow);setRunning(true);setStatus('Anime battlefield live. Rival squads fight autonomously and the world expands every few seconds. Click to aim · WASD move · Shift sprint · R reload · Click fire.');renderer.domElement.requestPointerLock?.()},stop:()=>{active=false;document.exitPointerLock?.()},applyConfig,scene,camera}
       applyConfig(DEFAULT_CONFIG)
       cleanup=()=>{active=false;observer.disconnect();renderer.domElement.removeEventListener('click',onClick);window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onUp);window.removeEventListener('mousemove',onMove);document.removeEventListener('pointerlockchange',onLock);document.exitPointerLock?.();renderer.dispose();scene.clear();canvasLayer.remove()}
-    }).catch(e=>{if(!dead)setError(e.message||'Unable to start 3D renderer')})
+    }).catch(e=>{if(!dead){const message=e?.message||'Unable to start 3D renderer';setError(message);setStatus('3D engine failed to initialize: '+message)}})
     return()=>{dead=true;cleanup?.()}
   },[])
 
