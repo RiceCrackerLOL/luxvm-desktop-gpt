@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { getTacticalFireRange, getTacticalMovement, selectTacticalTarget } from './confederateAI'
 
 declare global { interface Window { THREE?: any } }
 
@@ -92,8 +93,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
       sun.shadow.mapSize.set(2048, 2048)
       sun.shadow.camera.left = -70; sun.shadow.camera.right = 70; sun.shadow.camera.top = 70; sun.shadow.camera.bottom = -70
       scene.add(sun)
-      const makeSurfaceTexture=(base:number,variation:number,repeatX:number,repeatY:number)=>{const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;const ctx=canvas.getContext('2d');if(!ctx)return null;const image=ctx.createImageData(512,512);const r=(base>>16)&255,g=(base>>8)&255,b=base&255;for(let i=0;i<image.data.length;i+=4){const n=(Math.random()-.5)*variation;image.data[i]=Math.max(0,Math.min(255,r+n));image.data[i+1]=Math.max(0,Math.min(255,g+n));image.data[i+2]=Math.max(0,Math.min(255,b+n));image.data[i+3]=255}ctx.putImageData(image,0,0);for(let i=0;i<1800;i++){const x=Math.random()*512,y=Math.random()*512,size=Math.random()*2.5;ctx.fillStyle=`rgba(12,15,15,${Math.random()*.2})`;ctx.fillRect(x,y,size,size)}for(let i=0;i<22;i++){ctx.strokeStyle=`rgba(8,10,10,${Math.random()*.22})`;ctx.lineWidth=.5+Math.random()*1.5;ctx.beginPath();let x=Math.random()*512,y=Math.random()*512;ctx.moveTo(x,y);for(let j=0;j<4;j++){x+=(Math.random()-.5)*45;y+=(Math.random()-.5)*45;ctx.lineTo(x,y)}ctx.stroke()}const texture=new THREE.CanvasTexture(canvas);texture.wrapS=THREE.RepeatWrapping;texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(repeatX,repeatY);texture.colorSpace=THREE.SRGBColorSpace;return texture}
-      const concreteTexture=makeSurfaceTexture(0x77766d,46,3,3),asphaltTexture=makeSurfaceTexture(0x303436,30,8,24),metalTexture=makeSurfaceTexture(0x555d5d,58,2,2),skinTexture=makeSurfaceTexture(0x63704b,48,2,2)
+      const makeSurfaceTexture=(base:number,variation:number,repeatX:number,repeatY:number)=>{const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;const ctx=canvas.getContext('2d');if(!ctx)return null;const image=ctx.createImageData(512,512);const r=(base>>16)&255,g=(base>>8)&255,b=base&255;for(let i=0;i<image.data.length;i+=4){const n=(Math.random()-.5)*variation;image.data[i]=Math.max(0,Math.min(255,r+n));image.data[i+1]=Math.max(0,Math.min(255,g+n));image.data[i+2]=Math.max(0,Math.min(255,b+n));image.data[i+3]=255}ctx.putImageData(image,0,0);for(let i=0;i<1800;i++){const x=Math.random()*512,y=Math.random()*512,size=Math.random()*2.5;ctx.fillStyle=`rgba(12,15,15,${Math.random()*.2})`;ctx.fillRect(x,y,size,size)}for(let i=0;i<22;i++){ctx.strokeStyle=`rgba(8,10,10,${Math.random()*.22})`;ctx.lineWidth=.5+Math.random()*1.5;ctx.beginPath();let x=Math.random()*512,y=Math.random()*512;ctx.moveTo(x,y);for(let j=0;j<4;j++){x+=(Math.random()-.5)*45;y+=(Math.random()-.5)*45;ctx.lineTo(x,y)}ctx.stroke()}const texture=new THREE.CanvasTexture(canvas);texture.wrapS=THREE.RepeatWrapping;texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(repeatX,repeatY);texture.colorSpace=THREE.SRGBColorSpace;return texture}      const concreteTexture=makeSurfaceTexture(0x77766d,46,3,3),asphaltTexture=makeSurfaceTexture(0x303436,30,8,24),metalTexture=makeSurfaceTexture(0x555d5d,58,2,2),skinTexture=makeSurfaceTexture(0x63704b,48,2,2)
       weaponMetal.map=metalTexture;weaponMetal.bumpMap=metalTexture;weaponMetal.bumpScale=.025;weaponMetal.needsUpdate=true;weaponPolymer.map=metalTexture;weaponPolymer.needsUpdate=true
       const floor = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), new THREE.MeshToonMaterial({ color: 0x55554e, map:concreteTexture, bumpMap:concreteTexture, bumpScale:.045 }))
       floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor)
@@ -187,8 +187,7 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
         g.position.set(camera.position.x+Math.cos(angle)*dist,0,camera.position.z+Math.sin(angle)*dist)
         enemyGroup.add(g)
         const scale=Math.max(.75,Math.min(1.3,Number(chosen?.scale)||(.92+Math.random()*.2)));g.scale.setScalar(scale)
-        enemies.push({mesh:g,hp:Math.max(45,Math.min(360,Number(chosen?.health)||95)),maxHp:Math.max(45,Math.min(360,Number(chosen?.health)||95)),damage:Math.max(5,Math.min(28,Number(chosen?.damage)||9)),speed:.9+Math.random()*.85,nextShot:performance.now()+800+Math.random()*2400,alive:true,limbs,phase:Math.random()*6,strafe:Math.random()<.5?-1:1,team,teamColor,variant:'anime',target:null,targetAt:0,respawnAt:0})
-      }
+        enemies.push({mesh:g,hp:Math.max(45,Math.min(360,Number(chosen?.health)||95)),maxHp:Math.max(45,Math.min(360,Number(chosen?.health)||95)),damage:Math.max(5,Math.min(28,Number(chosen?.damage)||9)),speed:.9+Math.random()*.85,nextShot:performance.now()+800+Math.random()*2400,alive:true,limbs,phase:Math.random()*6,strafe:Math.random()<.5?-1:1,team,teamColor,variant:'anime',role:['assault','support','flanker','guard'][enemies.length%4],target:null,targetAt:0,respawnAt:0})      }
       {for(let i=0;i<18;i++)spawnEnemy()}
       const raycaster=new THREE.Raycaster()
       const keys:Record<string,boolean>={}
@@ -216,16 +215,15 @@ export default function GameStudio({ apiKey }: { apiKey: string }) {
         enemies.forEach(e=>{
           if(!e.alive)return
           const t=performance.now()*.001+e.phase
-          if(performance.now()>e.targetAt||!e.target?.alive){let best:any=null,bestDist=Infinity;for(const other of enemies){if(!other.alive||other===e||other.team===e.team)continue;const d=e.mesh.position.distanceTo(other.mesh.position);if(d<bestDist){best=other;bestDist=d}}e.target=best;e.targetAt=performance.now()+450+Math.random()*500}
+          if(performance.now()>e.targetAt||!e.target?.alive){e.target=selectTacticalTarget(e,enemies);e.targetAt=performance.now()+450+Math.random()*500}
           const target=e.target
           if(target?.alive){
             const dx=target.mesh.position.x-e.mesh.position.x,dz=target.mesh.position.z-e.mesh.position.z,dist=Math.max(.001,Math.hypot(dx,dz))
             e.mesh.rotation.y=Math.atan2(dx,dz)
             e.mesh.position.y=Math.abs(Math.sin(t*7))*.045
             e.limbs.forEach((l:any)=>{const swing=Math.sin(t*9)*(dist>3?.68:.2);l.mesh.rotation.x=l.kind==='leg'?swing*l.side:-swing*l.side*.7})
-            if(dist>8){e.mesh.position.x+=(dx/dist)*dt*(1.7*e.speed);e.mesh.position.z+=(dz/dist)*dt*(1.7*e.speed)}
-            else if(dist<5){e.mesh.position.x-=(dx/dist)*dt*.5;e.mesh.position.z-=(dz/dist)*dt*.5}
-            if(dist<25&&performance.now()>e.nextShot){
+            const movement=getTacticalMovement(e,target,t);if(movement.x||movement.z){e.mesh.position.x+=movement.x*dt*(1.7*e.speed);e.mesh.position.z+=movement.z*dt*(1.7*e.speed)}
+            if(dist<getTacticalFireRange(e.role)&&performance.now()>e.nextShot){
               e.nextShot=performance.now()+700+Math.random()*900
               const start=e.mesh.position.clone().add(new THREE.Vector3(0,1.45,0)),end=target.mesh.position.clone().add(new THREE.Vector3(0,1.3,0))
               const beam=new THREE.Line(new THREE.BufferGeometry().setFromPoints([start,end]),new THREE.LineBasicMaterial({color:e.teamColor,transparent:true,opacity:.95}))
